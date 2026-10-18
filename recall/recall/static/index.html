@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recall</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header>
+    <div class="logo"><a href="#/">recall.memory</a></div>
+    <nav>
+        <ul>
+            <li><a href="#/" data-nav="index">Index</a></li>
+            <li><a href="#/clusters" data-nav="clusters">Clusters</a></li>
+            <li><a href="#/import" data-nav="import">Import</a></li>
+            <li><a href="#/export" data-nav="export">Export</a></li>
+            <li><a href="#/settings" data-nav="settings">Settings</a></li>
+        </ul>
+    </nav>
+</header>
+<div id="app"></div>
+<footer>
+    <div class="footer-left" id="footer-left">Recall System</div>
+    <div class="footer-right" id="footer-right"></div>
+</footer>
+<input type="file" id="file-input" multiple accept=".json,.zip,.txt,.mp4,.mov,.m4v,.webm" class="hidden">
+<script src="/static/app.js"></script>
+</body>
+</html>

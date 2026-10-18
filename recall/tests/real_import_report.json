@@ -1,0 +1,616 @@
+{
+  "home": "/tmp/rreal",
+  "import": {
+    "found": 14,
+    "added": 14,
+    "already_indexed": 0,
+    "unresolved": 0
+  },
+  "wave1_s": 18.3,
+  "wave2_s": 158.2,
+  "peak_rss_mb": 1823,
+  "clusters": {
+    "clusters": 3,
+    "videos": 13
+  },
+  "videos": [
+    {
+      "id": "6718335390845095173",
+      "status": "deep",
+      "creator": "scout2015",
+      "duration": 10.495011,
+      "sound": "original sound \u2014 tiff",
+      "error": null,
+      "chunks": {
+        "caption": 1,
+        "creator": 1,
+        "hashtag": 1,
+        "sound": 1,
+        "transcript": 1
+      },
+      "timings": {
+        "wave1": 4.82,
+        "fetch": 2.88,
+        "transcribe": 1.55,
+        "ocr": 1.2,
+        "visual": 0.11,
+        "index": 0.03,
+        "wave2_total": 5.76
+      },
+      "caption": "Scramble up ur name & I\u2019ll try to guess it\ud83d\ude0d\u2764\ufe0f #foryoupage #petsoftikto"
+    },
+    {
+      "id": "6922938178559069446",
+      "status": "deep",
+      "creator": "feelgoodfoodie",
+      "duration": 25.7,
+      "sound": "original sound \u2014 Feel Good Foodie",
+      "error": null,
+      "chunks": {
+        "caption": 1,
+        "creator": 1,
+        "hashtag": 1,
+        "ocr": 2,
+        "sound": 1,
+        "transcript": 9
+      },
+      "timings": {
+        "wave1": 0.42,
+        "fetch": 5.07,
+        "transcribe": 0.79,
+        "ocr": 2.79,
+        "visual": 0.19,
+        "index": 0.03,
+        "wave2_total": 8.87
+      },
+      "caption": "Baked feta pasta with cherry tomatoes!! Recipe on blog \u2022 Inspired by @"
+    },
+    {
+      "id": "6937685305990548741",
+      "status": "deep",
+      "creator": "bobbyparrish",
+      "duration": 54.068966,
+      "sound": "I'm Hungry \u2014 MrRevedUp",
+      "error": null,
+      "chunks": {
+        "caption": 1,
+        "creator": 1,
+        "hashtag": 1,
+        "ocr": 2,
+        "sound": 1,
+        "transcript": 15
+      },
+      "timings": {
+        "wave1": 1.41,
+        "fetch": 7.01,
+        "transcribe": 1.22,
+        "ocr": 6.22,
+        "visual": 0.19,
+        "index": 0.03,
+        "wave2_total": 14.67
+      },
+      "caption": "Baked Feta Pasta is legit \ud83d\udc4c\ud83c\udffb#\ud83c\udf5d #fetapasta #pasta #recipe #recipesoftik"
+    },
+    {
+      "id": "6922946148760030469",
+      "status": "deep",
+      "creator": "grilledcheesesocial",
+      "duration": 30.37,
+      "sound": "She Share Story (for Vlog) \u2014 \u5c71\u53e3\u5915\u4f9d",
+      "error": null,
+      "chunks": {
+        "caption": 1,
+        "creator": 1,
+        "hashtag": 1,
+        "sound": 1,
+        "transcript": 8
+      },
+      "timings": {
+        "wave1": 0.6,
+        "fetch": 4.75,
+        "transcribe": 0.95,
+        "ocr": 2.82,
+        "visual": 0.18,
+        "index": 0.03,
+        "wave2_total": 8.73
+      },
+      "caption": "Baked feta pasta viral recipe! Inspired by #uunifeta via @liemessa & @"
+    },
+    {
+      "id": "6937445310067215622",
+      "status": "deep",
+      "creator": "thehungerdiaries",
+      "duration": 57.746009,
+      "sound": "original sound \u2014 The Hunger Diaries",
+      "error": null,
+      "chunks": {
+        "caption": 1,
+        "creator": 1,
+        "hashtag": 1,
+        "ocr": 2,
+        "sound": 1,
+        "transcript": 15
+      },
+      "timings": {
+        "wave1": 1.01,
+        "fetch": 6.17,
+        "transcribe": 1.13,
+        "ocr": 6.36,
+        "visual": 0.21,
+        "index": 0.05,
+        "wave2_total": 13.92
+      },
+      "caption": "Baked #fetapasta #macandcheese \u2014 #buffalochicken style \ud83d\udd25 This was insa"
+    },
+    {
+      "id": "7655369286113971488",
+      "status": "deep",
+      "creator": "romantrains",
+      "duration": 17.576009,
+      "sound": "MONTAGEM PENETRA (Super Slowed) \u2014 AKXNESHIVA",
+      "error": null,
+      "chunks": {
+        "caption": 1,
+        "creator": 1,
+        "hashtag": 1,
+        "ocr": 2,
+        "sound": 1,
+        "transcript": 1
+      },
+      "timings": {
+        "wave1": 1.6,
+        "fetch": 2.18,
+        "transcribe": 1.36,
+        "ocr": 1.68,
+        "visual": 0.18,
+        "index": 0.03,
+        "wave2_total": 5.42
+      },
+      "caption": "Dumbbell Upper Body Workout Build a stronger upper body with this begi"
+    },
+    {
+      "id": "7623775407480917261",
+      "status": "deep",
+      "creator": "jordancvercko.fit",
+      "duration": 21.890612,
+      "sound": "original sound \u2014 Brooke \ud83d\udc69\ud83c\udffc\u200d\ud83c\udfa4",
+      "error": null,
+      "chunks": {
+        "caption": 1,
+        "creator": 1,
+        "hashtag": 1,
+        "sound": 1,
+        "transcript": 14
+      },
+      "timings": {
+        "wave1": 0.38,
+        "fetch": 1.51,
+        "transcribe": 3.29,
+        "index": 0.03,
+        "wave2_total": 4.83
+      },
+      "caption": "You only need 20 minutes and a set of dumbbells for this at home CORE "
+    },
+    {
+      "id": "7655430615969369357",
+      "status": "deep",
+      "creator": "vivfitfun",
+      "duration": 23.380998,
+      "sound": "Jump \u2014 Van Halen",
+      "error": null,
+      "chunks": {
+        "caption": 1,
+        "creator": 1,
+        "hashtag": 1,
+        "ocr": 8,
+        "sound": 1,
+        "transcript": 3
+      },
+      "timings": {
+        "wave1": 2.5,
+        "fetch": 4.36,
+        "transcribe": 0.75,
+        "ocr": 2.78,
+        "visual": 0.19,
+        "index": 0.04,
+        "wave2_total": 8.12
+      },
+      "caption": "When's the last time you JUMPED? I worked with a trainer (actually he "
+    },
+    {
+      "id": "7649505481525873934",
+      "status": "deep",
+      "creator": "justtcocoo",
+      "duration": 26.98,
+      "sound": "Everything is romantic featuring caroline polachek \u2014 Charli xcx, Caroline Polachek",
+      "error": null,
+      "chunks": {
+        "caption": 1,
+        "creator": 1,
+        "hashtag": 1,
+        "ocr": 2,
+        "sound": 1,
+        "transcript": 12
+      },
+      "timings": {
+        "wave1": 0.46,
+        "fetch": 4.54,
+        "transcribe": 0.73,
+        "ocr": 3.84,
+        "visual": 0.23,
+        "index": 0.06,
+        "wave2_total": 9.4
+      },
+      "caption": "All you need are dumbbells and 30ish min from home!! All workouts on f"
+    },
+    {
+      "id": "7620567839790877982",
+      "status": "deep",
+      "creator": "taylorgjordan",
+      "duration": 28.952993,
+      "sound": "Business & Personal (Intro) \u2014 Latto",
+      "error": null,
+      "chunks": {
+        "caption": 1,
+        "creator": 1,
+        "hashtag": 1,
+        "ocr": 8,
+        "sound": 1,
+        "transcript": 9
+      },
+      "timings": {
+        "wave1": 1.0,
+        "fetch": 4.07,
+        "transcribe": 0.95,
+        "ocr": 3.55,
+        "visual": 0.19,
+        "index": 0.05,
+        "wave2_total": 8.81
+      },
+      "caption": "FULL BODY FRIDAY \u2764\ufe0f\u200d\ud83d\udd25 save this ~ 30 minute circuit for your next full"
+    },
+    {
+      "id": "7287722526472490272",
+      "status": "deep",
+      "creator": "aroundtheatlas",
+      "duration": 96.233333,
+      "sound": "original sound \u2014 Around The Atlas\ud83c\udf0d\u2708\ufe0f",
+      "error": null,
+      "chunks": {
+        "caption": 1,
+        "creator": 1,
+        "hashtag": 1,
+        "ocr": 45,
+        "sound": 1,
+        "transcript": 19
+      },
+      "timings": {
+        "wave1": 1.0,
+        "fetch": 10.99,
+        "transcribe": 1.66,
+        "ocr": 23.83,
+        "visual": 0.19,
+        "index": 0.5,
+        "wave2_total": 37.16
+      },
+      "caption": "how to get super cheap flights!! #travel #cheaptravel #fyp #travelhack"
+    },
+    {
+      "id": "7520386336583437623",
+      "status": "deep",
+      "creator": "dailyoriginalvids",
+      "duration": 72.583991,
+      "sound": "Vacation \u2014 Dirty Heads",
+      "error": null,
+      "chunks": {
+        "caption": 1,
+        "creator": 1,
+        "hashtag": 1,
+        "ocr": 8,
+        "sound": 1,
+        "transcript": 8
+      },
+      "timings": {
+        "wave1": 1.35,
+        "fetch": 5.88,
+        "transcribe": 3.75,
+        "ocr": 8.21,
+        "visual": 0.2,
+        "index": 0.04,
+        "wave2_total": 18.07
+      },
+      "caption": "Super smart travel tips I always use on vacation #traveltips #hotel #v"
+    },
+    {
+      "id": "7582127557408001288",
+      "status": "deep",
+      "creator": "allianzmalaysia",
+      "duration": 22.015986,
+      "sound": "original sound - user46194145013 \u2014 Allianz Malaysia",
+      "error": null,
+      "chunks": {
+        "caption": 1,
+        "creator": 1,
+        "ocr": 7,
+        "sound": 1,
+        "transcript": 1
+      },
+      "timings": {
+        "wave1": 1.44,
+        "fetch": 3.83,
+        "transcribe": 1.2,
+        "ocr": 2.78,
+        "visual": 0.19,
+        "index": 0.05,
+        "wave2_total": 8.05
+      },
+      "caption": "Travel with peace of mind! \ud83c\udf0d\u2728 Let Allianz Travel XPert handle the unex"
+    },
+    {
+      "id": "7000000000000000001",
+      "status": "dead",
+      "creator": null,
+      "duration": null,
+      "sound": null,
+      "error": "oEmbed HTTP 400",
+      "chunks": {},
+      "timings": {},
+      "caption": ""
+    }
+  ],
+  "queries": [
+    {
+      "q": "baked feta pasta",
+      "n": 4,
+      "ms": 46.8,
+      "top": [
+        [
+          "feelgoodfoodie",
+          7.64,
+          [
+            "Caption (meaning):0.816",
+            "Caption:10.502",
+            "Transcript:6.766"
+          ]
+        ],
+        [
+          "grilledcheesesocial",
+          0.98,
+          [
+            "Caption (meaning):0.769",
+            "Caption:10.952",
+            "Transcript:4.228"
+          ]
+        ],
+        [
+          "bobbyparrish",
+          null,
+          [
+            "Caption:12.999",
+            "Hashtag:4.59",
+            "Caption (meaning):0.787"
+          ]
+        ]
+      ]
+    },
+    {
+      "q": "dumbbell workout at home",
+      "n": 5,
+      "ms": 22.9,
+      "top": [
+        [
+          "romantrains",
+          1.0,
+          [
+            "On-screen text (meaning):0.631",
+            "Caption:10.641",
+            "On-screen text:5.12"
+          ]
+        ],
+        [
+          "justtcocoo",
+          1.0,
+          [
+            "Caption (meaning):0.675",
+            "Caption:11.787",
+            "On-screen text:4.711"
+          ]
+        ],
+        [
+          "jordancvercko.fit",
+          null,
+          [
+            "Creator:10.055",
+            "Caption:9.841",
+            "Hashtag:4.468"
+          ]
+        ]
+      ]
+    },
+    {
+      "q": "cheap flights",
+      "n": 2,
+      "ms": 22.2,
+      "top": [
+        [
+          "aroundtheatlas",
+          90.78,
+          [
+            "Caption:7.794",
+            "Transcript:4.847",
+            "On-screen text:4.394"
+          ]
+        ],
+        [
+          "dailyoriginalvids",
+          1.0,
+          [
+            "On-screen text:2.437"
+          ]
+        ]
+      ]
+    },
+    {
+      "q": "cat",
+      "n": 1,
+      "ms": 25.0,
+      "top": [
+        [
+          "aroundtheatlas",
+          9.0,
+          [
+            "On-screen text:1.879"
+          ]
+        ]
+      ]
+    },
+    {
+      "q": "travel insurance",
+      "n": 3,
+      "ms": 22.6,
+      "top": [
+        [
+          "allianzmalaysia",
+          19.0,
+          [
+            "On-screen text:6.113",
+            "Caption:5.024",
+            "Caption (meaning):0.513"
+          ]
+        ],
+        [
+          "aroundtheatlas",
+          19.0,
+          [
+            "Hashtag:4.734",
+            "Caption:4.068",
+            "On-screen text:1.853"
+          ]
+        ],
+        [
+          "dailyoriginalvids",
+          null,
+          [
+            "Caption:3.801"
+          ]
+        ]
+      ]
+    },
+    {
+      "q": "what does she say about the tomatoes",
+      "n": 3,
+      "ms": 20.9,
+      "top": [
+        [
+          "bobbyparrish",
+          13.24,
+          [
+            "Transcript (meaning):0.611",
+            "Transcript:5.9",
+            "says \"about the tomatoes\":None"
+          ]
+        ],
+        [
+          "feelgoodfoodie",
+          5.64,
+          [
+            "Caption:4.324",
+            "Transcript:4.153",
+            "Visual similarity:0.29"
+          ]
+        ],
+        [
+          "grilledcheesesocial",
+          3.28,
+          [
+            "Transcript:4.608",
+            "Visual similarity:0.282",
+            "says \"about the tomatoes\":None"
+          ]
+        ]
+      ]
+    }
+  ],
+  "stats": {
+    "counts": {
+      "new": 0,
+      "meta": 0,
+      "deep": 13,
+      "dead": 1,
+      "failed": 0
+    },
+    "live": 13,
+    "total": 14,
+    "deep_pct": 100,
+    "coverage": {
+      "Captions": {
+        "videos": 13,
+        "pct": 100
+      },
+      "Transcripts": {
+        "videos": 13,
+        "pct": 100
+      },
+      "On-screen text": {
+        "videos": 10,
+        "pct": 77
+      },
+      "Visual": {
+        "videos": 12,
+        "pct": 92
+      },
+      "Sound": {
+        "videos": 13,
+        "pct": 100
+      },
+      "Hashtags": {
+        "videos": 12,
+        "pct": 92
+      }
+    },
+    "disk": {
+      "db_bytes": 4730720,
+      "media_bytes": 3057426,
+      "total_bytes": 7788146,
+      "disk_free": 103533334528,
+      "disk_total": 134208786432,
+      "home": "/tmp/rreal"
+    },
+    "latency": {
+      "avg_ms": 26.7,
+      "n": 6,
+      "last_ms": 20.9
+    },
+    "per_stage": {
+      "fetch": {
+        "avg_s": 4.86,
+        "n": 13
+      },
+      "index": {
+        "avg_s": 0.07,
+        "n": 13
+      },
+      "ocr": {
+        "avg_s": 5.5,
+        "n": 12
+      },
+      "transcribe": {
+        "avg_s": 1.49,
+        "n": 13
+      },
+      "visual": {
+        "avg_s": 0.19,
+        "n": 12
+      },
+      "wave1": {
+        "avg_s": 1.39,
+        "n": 13
+      },
+      "wave2_total": {
+        "avg_s": 11.68,
+        "n": 13
+      }
+    },
+    "clusters": 3
+  }
+}

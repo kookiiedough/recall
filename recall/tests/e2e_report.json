@@ -1,0 +1,586 @@
+{
+  "home": "/tmp/rhome",
+  "import": {
+    "found": 18,
+    "added": 18,
+    "already_indexed": 0,
+    "unresolved": 0
+  },
+  "reimport_added": 0,
+  "wave1_s": 6.61,
+  "wave2_s": 43.86,
+  "deep_indexed": 18,
+  "per_video_wave2_s": 2.44,
+  "ingest_peak_rss_mb": 1849,
+  "clusters": {
+    "clusters": 4,
+    "videos": 18
+  },
+  "cluster_names": [
+    [
+      "Fitness \u00b7 Morning",
+      7,
+      [
+        "fitness",
+        "workout",
+        "grwm",
+        "morning"
+      ]
+    ],
+    [
+      "Travel",
+      4,
+      [
+        "travel",
+        "la",
+        "vanlife",
+        "out"
+      ]
+    ],
+    [
+      "Recipes",
+      4,
+      [
+        "recipe",
+        "baking",
+        "pasta",
+        "add"
+      ]
+    ],
+    [
+      "Tech & Tips",
+      3,
+      [
+        "techtips",
+        "desksetup",
+        "iphone",
+        "stop"
+      ]
+    ]
+  ],
+  "no_results_query": {
+    "total": 0,
+    "fuzzy": [
+      [
+        "07",
+        0.298,
+        "meaning \u00b7 On-screen text"
+      ],
+      [
+        "14",
+        0.21,
+        "meaning \u00b7 Transcript"
+      ],
+      [
+        "11",
+        0.184,
+        "meaning \u00b7 Transcript"
+      ]
+    ],
+    "suggestions": {
+      "broaden": [
+        {
+          "text": "Try removing \"vintage\" (appears in 0 saves)",
+          "query": "mechanical watches from the 1940s in silver"
+        },
+        {
+          "text": "Try removing \"mechanical\" (appears in 0 saves)",
+          "query": "vintage watches from the 1940s in silver"
+        },
+        {
+          "text": "Try removing \"watches\" (appears in 0 saves)",
+          "query": "vintage mechanical from the 1940s in silver"
+        },
+        {
+          "text": "Try removing \"1940s\" (appears in 0 saves)",
+          "query": "vintage mechanical watches from the in silver"
+        }
+      ],
+      "help": [
+        "Every save is fully indexed; this content may simply not be in your saves"
+      ]
+    }
+  },
+  "peak_rss_mb": 1849,
+  "ru_maxrss_mb": 1857,
+  "accuracy": {
+    "caption": "3/3",
+    "transcript": "4/4",
+    "semantic": "2/2",
+    "ocr": "3/3",
+    "visual": "4/4",
+    "creator": "3/3",
+    "hashtag": "2/2",
+    "sound": "2/2",
+    "date": "3/3",
+    "duration": "1/1",
+    "combined": "2/2"
+  },
+  "rank1_total": "29/29",
+  "latency_ms": {
+    "p50": 22.2,
+    "max": 26.7,
+    "mean": 19.3
+  },
+  "stats": {
+    "counts": {
+      "new": 0,
+      "meta": 0,
+      "deep": 18,
+      "dead": 0,
+      "failed": 0
+    },
+    "coverage": {
+      "Captions": {
+        "videos": 18,
+        "pct": 100
+      },
+      "Transcripts": {
+        "videos": 18,
+        "pct": 100
+      },
+      "On-screen text": {
+        "videos": 6,
+        "pct": 33
+      },
+      "Visual": {
+        "videos": 18,
+        "pct": 100
+      },
+      "Sound": {
+        "videos": 18,
+        "pct": 100
+      },
+      "Hashtags": {
+        "videos": 18,
+        "pct": 100
+      }
+    },
+    "disk": {
+      "db_bytes": 4464312,
+      "media_bytes": 282757,
+      "total_bytes": 4747069,
+      "disk_free": 103518265344,
+      "disk_total": 134208786432,
+      "home": "/tmp/rhome"
+    },
+    "per_stage": {
+      "fetch": {
+        "avg_s": 0.25,
+        "n": 18
+      },
+      "index": {
+        "avg_s": 0.02,
+        "n": 18
+      },
+      "ocr": {
+        "avg_s": 1.03,
+        "n": 18
+      },
+      "transcribe": {
+        "avg_s": 0.63,
+        "n": 18
+      },
+      "visual": {
+        "avg_s": 0.11,
+        "n": 18
+      },
+      "wave1": {
+        "avg_s": 0.37,
+        "n": 18
+      },
+      "wave2_total": {
+        "avg_s": 2.03,
+        "n": 18
+      }
+    }
+  },
+  "queries": [
+    {
+      "signal": "caption",
+      "query": "lemon ricotta cake",
+      "ok": true,
+      "rank": 1,
+      "n": 2,
+      "best_t": null,
+      "ms": 23.6,
+      "chips": [
+        "Caption:9.403",
+        "Caption (meaning):0.801"
+      ]
+    },
+    {
+      "signal": "caption",
+      "query": "five ingredient tacos",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": null,
+      "ms": 24.4,
+      "chips": [
+        "Caption:10.97",
+        "Hashtag:4.835",
+        "Caption (meaning):0.855"
+      ]
+    },
+    {
+      "signal": "caption",
+      "query": "repotting monstera",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": null,
+      "ms": 26.7,
+      "chips": [
+        "Caption:8.506",
+        "Sound:3.97",
+        "Caption (meaning):0.794"
+      ]
+    },
+    {
+      "signal": "transcript",
+      "query": "video where a guy says stop doing this",
+      "ok": true,
+      "rank": 1,
+      "n": 2,
+      "best_t": 0.0,
+      "ms": 23.7,
+      "chips": [
+        "Transcript phrase:2.014@0.0s",
+        "Transcript:4.899@0.0s",
+        "says \"stop doing this\":None"
+      ]
+    },
+    {
+      "signal": "transcript",
+      "query": "the secret is cold butter",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": 0.68,
+      "ms": 21.7,
+      "chips": [
+        "Transcript:4.164@0.7s",
+        "Caption:4.164",
+        "Transcript (meaning):0.508@0.0s"
+      ]
+    },
+    {
+      "signal": "transcript",
+      "query": "brings me exactly one sock",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": 2.02,
+      "ms": 22.1,
+      "chips": [
+        "Transcript:5.579@2.0s",
+        "Transcript (meaning):0.667@0.0s"
+      ]
+    },
+    {
+      "signal": "transcript",
+      "query": "freeze grapes to chill wine",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": 0.0,
+      "ms": 24.5,
+      "chips": [
+        "Transcript:9.073@0.0s",
+        "Transcript (meaning):0.573@0.0s"
+      ]
+    },
+    {
+      "signal": "semantic",
+      "query": "how to keep my phone battery healthy",
+      "ok": true,
+      "rank": 1,
+      "n": 3,
+      "best_t": 3.0,
+      "ms": 26.7,
+      "chips": [
+        "Transcript (meaning):0.498@0.0s",
+        "Transcript:3.777@3.0s"
+      ]
+    },
+    {
+      "signal": "semantic",
+      "query": "putting money aside from my salary",
+      "ok": true,
+      "rank": 1,
+      "n": 2,
+      "best_t": 2.66,
+      "ms": 23.2,
+      "chips": [
+        "Hashtag:4.911",
+        "Caption:2.646",
+        "Transcript:2.209@2.7s",
+        "Transcript (meaning):0.566@0.0s"
+      ]
+    },
+    {
+      "signal": "ocr",
+      "query": "sunset boulevard",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": 5.0,
+      "ms": 21.9,
+      "chips": [
+        "On-screen text:4.982@5.0s",
+        "On-screen text (meaning):0.586@5.0s"
+      ]
+    },
+    {
+      "signal": "ocr",
+      "query": "ab burner",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": 1.0,
+      "ms": 21.7,
+      "chips": [
+        "On-screen text:9.073@1.0s",
+        "On-screen text (meaning):0.799@1.0s",
+        "Visual similarity:0.37"
+      ]
+    },
+    {
+      "signal": "ocr",
+      "query": "pay yourself first",
+      "ok": true,
+      "rank": 1,
+      "n": 2,
+      "best_t": 1.0,
+      "ms": 21.7,
+      "chips": [
+        "On-screen text:12.354@1.0s",
+        "Transcript:8.221@0.0s",
+        "Caption:2.437",
+        "On-screen text (meaning):1.0@1.0s"
+      ]
+    },
+    {
+      "signal": "visual",
+      "query": "green",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": 1.0,
+      "ms": 23.0,
+      "chips": [
+        "Visual similarity:0.295@1.0s"
+      ]
+    },
+    {
+      "signal": "visual",
+      "query": "something purple",
+      "ok": true,
+      "rank": 1,
+      "n": 2,
+      "best_t": 3.0,
+      "ms": 21.7,
+      "chips": [
+        "Visual similarity:0.291@3.0s"
+      ]
+    },
+    {
+      "signal": "visual",
+      "query": "bright yellow",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": 3.0,
+      "ms": 22.9,
+      "chips": [
+        "Visual similarity:0.322@3.0s"
+      ]
+    },
+    {
+      "signal": "visual",
+      "query": "pink",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": 9.0,
+      "ms": 25.3,
+      "chips": [
+        "Visual similarity:0.266@9.0s"
+      ]
+    },
+    {
+      "signal": "creator",
+      "query": "@nomadnina ramen",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": null,
+      "ms": 23.9,
+      "chips": [
+        "Caption:3.848",
+        "Caption (meaning):0.648",
+        "@nomadnina:None"
+      ]
+    },
+    {
+      "signal": "creator",
+      "query": "vanlifevera",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": null,
+      "ms": 21.2,
+      "chips": [
+        "Creator:5.525",
+        "Hashtag (meaning):0.538"
+      ]
+    },
+    {
+      "signal": "creator",
+      "query": "@budgetbecca",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": null,
+      "ms": 0.3,
+      "chips": [
+        "@budgetbecca:None"
+      ]
+    },
+    {
+      "signal": "hashtag",
+      "query": "#vanlife",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": null,
+      "ms": 0.3,
+      "chips": [
+        "#vanlife:None"
+      ]
+    },
+    {
+      "signal": "hashtag",
+      "query": "#desksetup",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": null,
+      "ms": 0.1,
+      "chips": [
+        "#desksetup:None"
+      ]
+    },
+    {
+      "signal": "sound",
+      "query": "midnight coffee",
+      "ok": true,
+      "rank": 1,
+      "n": 3,
+      "best_t": null,
+      "ms": 21.5,
+      "chips": [
+        "Sound:8.506",
+        "Sound (meaning):0.736"
+      ]
+    },
+    {
+      "signal": "sound",
+      "query": "neon streets city pop",
+      "ok": true,
+      "rank": 1,
+      "n": 3,
+      "best_t": null,
+      "ms": 23.6,
+      "chips": [
+        "Sound:18.146",
+        "Sound (meaning):0.968"
+      ]
+    },
+    {
+      "signal": "date",
+      "query": "saved yesterday",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": null,
+      "ms": 0.3,
+      "chips": [
+        "saved yesterday:None"
+      ]
+    },
+    {
+      "signal": "date",
+      "query": "workout March",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": null,
+      "ms": 26.6,
+      "chips": [
+        "Hashtag:4.835",
+        "Caption:3.644",
+        "Hashtag (meaning):0.655",
+        "saved March 2026:None"
+      ]
+    },
+    {
+      "signal": "date",
+      "query": "iphone settings 2025",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": 1.0,
+      "ms": 23.8,
+      "chips": [
+        "Caption:7.794",
+        "Hashtag:5.426",
+        "On-screen text:4.376@1.0s",
+        "Caption (meaning):0.792"
+      ]
+    },
+    {
+      "signal": "duration",
+      "query": "under 6 seconds",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": null,
+      "ms": 0.3,
+      "chips": [
+        "under 6s:None"
+      ]
+    },
+    {
+      "signal": "combined",
+      "query": "pasta recipe with feta in a green bowl",
+      "ok": true,
+      "rank": 1,
+      "n": 2,
+      "best_t": 7.78,
+      "ms": 22.2,
+      "chips": [
+        "Hashtag:11.94",
+        "Caption:10.078",
+        "Transcript:1.288@7.8s",
+        "Hashtag (meaning):0.694"
+      ]
+    },
+    {
+      "signal": "combined",
+      "query": "GRWM blue dress",
+      "ok": true,
+      "rank": 1,
+      "n": 1,
+      "best_t": 7.0,
+      "ms": 21.7,
+      "chips": [
+        "On-screen text:9.964@7.0s",
+        "Hashtag:4.835",
+        "Caption:4.746",
+        "On-screen text (meaning):0.709@7.0s"
+      ]
+    }
+  ]
+}

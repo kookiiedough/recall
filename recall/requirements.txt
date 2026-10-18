@@ -1,0 +1,21 @@
+# Recall — runtime dependencies (all free / open source, CPU only).
+# Install CPU-only PyTorch first to avoid the multi-GB CUDA build:
+#   pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.3
+torchvision>=0.18
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+httpx>=0.27
+python-dateutil>=2.9
+numpy>=1.26
+pillow>=10.0
+psutil>=5.9
+scikit-learn>=1.4
+yt-dlp>=2024.10.0
+faster-whisper>=1.0.3
+rapidocr>=3.0
+onnxruntime>=1.17
+open_clip_torch>=2.24
+sentence-transformers>=3.0
