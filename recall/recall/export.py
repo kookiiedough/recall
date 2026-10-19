@@ -11,7 +11,7 @@ from . import config, db
 
 
 def select_ids(con, cluster: str | None = None, date_range: str | None = None, ids: list[str] | None = None) -> list[str]:
-    where, args = ["status IN ('meta','deep')"], []
+    where, args = ["status IN ('meta','partial','deep')"], []
     if ids:
         where.append(f"id IN ({','.join('?'*len(ids))})"); args += ids
     if cluster and cluster != "all":

@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS videos (
     local_path    TEXT,                       -- for local-file ingest (never deleted by us)
     saved_at      REAL,                       -- unix ts when the user saved it (from export)
     added_at      REAL NOT NULL,
-    status        TEXT NOT NULL DEFAULT 'new',  -- new | meta | deep | dead | failed
+    status        TEXT NOT NULL DEFAULT 'new',  -- new | meta | partial | deep | dead | failed
     stage         TEXT,                       -- current wave-2 stage for progress display
     progress      REAL DEFAULT 0,
     attempts      INTEGER DEFAULT 0,
@@ -121,7 +121,20 @@ def connect(path: Path | str | None = None) -> sqlite3.Connection:
     con.execute("PRAGMA foreign_keys=ON")
     con.execute("PRAGMA busy_timeout=30000")
     con.executescript(SCHEMA)
+    _migrate(con)
     return con
+
+
+def _migrate(con: sqlite3.Connection) -> None:
+    """v0.1 marked download failures 'failed' (unsearchable). They now go back to the deep queue, where a
+    failing download ends as a searchable thumbnail-only 'partial' save instead."""
+    where = "status='failed' AND error LIKE 'download:%' AND caption IS NOT NULL"
+    try:
+        if con.execute(f"SELECT 1 FROM videos WHERE {where} LIMIT 1").fetchone():
+            con.execute(f"UPDATE videos SET status='meta', attempts=0, stage=NULL WHERE {where}")
+            con.commit()
+    except sqlite3.OperationalError:   # another connection is writing; try again next open
+        con.rollback()
 
 
 def get() -> sqlite3.Connection:
@@ -142,10 +155,15 @@ def reset_thread_connection() -> None:
 
 
 # ---------------------------------------------------------------- state machine
-STATUSES = ("new", "meta", "deep", "dead", "failed")
+STATUSES = ("new", "meta", "partial", "deep", "dead", "failed")
+# partial = video download failed (or downloads are off): wave-1 metadata + thumbnail-only CLIP/OCR are indexed,
+# the save stays searchable, `error` says why, and retriable failures are re-tried automatically later.
+LIVE = ("meta", "partial", "deep")
+LIVE_SQL = "('meta','partial','deep')"
 TRANSITIONS: dict[str, set[str]] = {
     "new": {"meta", "dead", "failed"},
-    "meta": {"deep", "failed", "dead", "meta"},   # meta->meta = metadata refresh
+    "meta": {"deep", "partial", "failed", "dead", "meta"},   # meta->meta = metadata refresh
+    "partial": {"deep", "partial", "meta", "new"},           # automatic / manual download retry
     "deep": {"meta", "deep"},                      # re-index (e.g. settings changed)
     "failed": {"new", "meta"},                     # manual / automatic retry
     "dead": {"new"},                               # manual retry of a dead link

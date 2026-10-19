@@ -222,3 +222,15 @@ select, input[type="date"] { background: transparent; border: var(--line-weight)
 
 footer { margin-top: 80px; border-top: var(--line-weight) solid var(--border); padding-top: var(--space-unit); display: flex; justify-content: space-between; font-size: 11px; opacity: 0.6; }
 .hidden { display: none !important; }
+
+/* ---------- download circuit-breaker banner (Home / Import) */
+.alert-banner { border: var(--line-weight) solid var(--border); border-left-width: 4px; padding: 18px 20px; margin: 0 0 32px; display: flex; gap: 16px; align-items: flex-start; background: rgba(0,0,0,0.03); }
+.alert-banner h4 { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.alert-banner p { font-size: 12px; line-height: 1.5; margin-bottom: 6px; }
+.alert-banner .err { font-size: 11px; opacity: .7; }
+.alert-banner ol { font-size: 12px; padding-left: 18px; margin: 4px 0 10px; line-height: 1.6; }
+.alert-banner .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.alert-banner .button { padding: 6px 12px; font-size: 12px; }
+.cov-line { display: inline-flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.cov-line b { font-weight: 600; }
+.settings-input { max-width: 320px; flex: none; padding: 6px 8px; font-size: 12px; }

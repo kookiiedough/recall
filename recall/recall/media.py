@@ -47,27 +47,6 @@ def frame_at(video: str, t: float, out: Path, width: int = 360) -> bool:
     return r.returncode == 0 and out.exists()
 
 
-def ytdlp_download(url: str, out_dir: Path) -> tuple[Path | None, dict]:
-    """Download a small rendition + metadata. Personal use only; may violate TikTok ToS and can break."""
-    import yt_dlp
-    out_dir.mkdir(parents=True, exist_ok=True)
-    opts = {
-        "outtmpl": str(out_dir / "%(id)s.%(ext)s"),
-        "format": "worst[ext=mp4][vcodec!=none][acodec!=none]/best[height<=720][ext=mp4]/worst/best",
-        "quiet": True, "no_warnings": True, "noprogress": True,
-        "socket_timeout": 30, "retries": 2, "noplaylist": True,
-    }
-    with yt_dlp.YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        path = Path(ydl.prepare_filename(info))
-    if not path.exists():
-        cands = list(out_dir.glob(f"{info.get('id')}.*"))
-        path = cands[0] if cands else None
-    meta = {k: info.get(k) for k in ("id", "title", "description", "duration", "track", "artist", "uploader",
-                                     "uploader_id", "channel", "timestamp", "tags", "thumbnail")}
-    return path, meta
-
-
 def read_wav(path: str):
     """16 kHz mono PCM wav -> float32 numpy (avoids PyAV version issues inside faster-whisper)."""
     import wave

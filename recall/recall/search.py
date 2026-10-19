@@ -124,7 +124,7 @@ def _word_time(meta: str | None, phrase_tokens: list[str], fallback: float | Non
 
 
 def _live_filter_sql(pq: queryparse.ParsedQuery, facets: dict) -> tuple[str, list]:
-    where, args = ["v.status IN ('meta','deep')"], []
+    where, args = ["v.status IN ('meta','partial','deep')"], []
     for c in pq.creators + facets.get("creator", []):
         where.append("(v.creator = ? OR v.creator LIKE ?)")
         args += [c.lower().lstrip("@"), c.lower().lstrip("@") + "%"]
@@ -188,7 +188,7 @@ def search(q: str, facets: dict | None = None, limit: int = 60, offset: int = 0,
     where, args = _live_filter_sql(pq, facets)
     vids_rows = con.execute(f"SELECT v.id, v.saved_at, v.creator FROM videos v WHERE {where}", args).fetchall()
     allowed = {r["id"]: r for r in vids_rows}
-    total_live = con.execute("SELECT count(*) FROM videos WHERE status IN ('meta','deep')").fetchone()[0]
+    total_live = con.execute("SELECT count(*) FROM videos WHERE status IN ('meta','partial','deep')").fetchone()[0]
 
     sem_text = FILLER_RE.sub("", pq.text).strip() or pq.text
     if pq.speech:
@@ -330,7 +330,7 @@ def search(q: str, facets: dict | None = None, limit: int = 60, offset: int = 0,
         scores, contrib = fusion.rrf({"filter": order}, {"filter": 1.0})
     # boosts: recency of save and creator affinity (how many of your saves are from this creator)
     creator_counts = Counter(r[0] for r in con.execute(
-        "SELECT creator FROM videos WHERE status IN ('meta','deep') AND creator IS NOT NULL"))
+        "SELECT creator FROM videos WHERE status IN ('meta','partial','deep') AND creator IS NOT NULL"))
     max_cc = max(creator_counts.values()) if creator_counts else 1
     nowts = (now or datetime.now()).timestamp()
     boosts: dict[str, dict[str, float]] = {}
@@ -382,6 +382,7 @@ def _result(con, vid: str, score: float, contrib: dict, boosts: dict, why: list,
     boost_list = [{"name": k, "value": round(x, 4)} for k, x in boosts.items() if x > 0]
     return {
         "id": vid, "url": v["url"], "source": v["source"], "status": v["status"], "caption": v["caption"],
+        "error": v["error"] if v["status"] == "partial" else None,
         "creator": v["creator"], "creator_name": v["creator_name"], "sound": v["sound"], "duration": v["duration"],
         "saved_at": v["saved_at"], "hashtags": v["hashtags"], "thumb": v["thumb"], "frames": v["frames"],
         "note": v["note"], "attrs": {k: a for k, a in (v["attrs"] or {}).items() if a.get("value")},
@@ -450,6 +451,8 @@ def _suggestions(con, pq, terms, facets, settings) -> dict:
     counts = dict(con.execute("SELECT status, count(*) FROM videos GROUP BY status").fetchall())
     if counts.get("meta"):
         help_.append(f"{counts['meta']} saves are not deep-indexed yet (no transcript/OCR/visual) — see Import queue")
+    if counts.get("partial"):
+        help_.append(f"{counts['partial']} saves couldn't be downloaded, so only their caption + thumbnail are indexed (no transcript) — see Import queue")
     if counts.get("new"):
         help_.append(f"{counts['new']} saves are still waiting for metadata")
     for k, name in (("ocr", "On-screen text (OCR)"), ("transcripts", "Transcripts"), ("visual", "Visual similarity")):
@@ -465,7 +468,7 @@ def _suggestions(con, pq, terms, facets, settings) -> dict:
 # ------------------------------------------------------------------ facets
 def facet_counts(con, ids: list[str] | None, top: int = 8) -> dict[str, list]:
     if ids is None:
-        rows = con.execute("SELECT * FROM videos WHERE status IN ('meta','deep')").fetchall()
+        rows = con.execute("SELECT * FROM videos WHERE status IN ('meta','partial','deep')").fetchall()
     else:
         rows = []
         for i in range(0, len(ids), 900):

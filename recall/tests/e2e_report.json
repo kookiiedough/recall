@@ -1,5 +1,5 @@
 {
-  "home": "/tmp/rhome",
+  "home": "/tmp/recall-e2e-p8yyagmb",
   "import": {
     "found": 18,
     "added": 18,
@@ -7,11 +7,11 @@
     "unresolved": 0
   },
   "reimport_added": 0,
-  "wave1_s": 6.61,
-  "wave2_s": 43.86,
+  "wave1_s": 6.06,
+  "wave2_s": 44.96,
   "deep_indexed": 18,
-  "per_video_wave2_s": 2.44,
-  "ingest_peak_rss_mb": 1849,
+  "per_video_wave2_s": 2.5,
+  "ingest_peak_rss_mb": 1807,
   "clusters": {
     "clusters": 4,
     "videos": 18
@@ -54,7 +54,7 @@
         "techtips",
         "desksetup",
         "iphone",
-        "stop"
+        "doing"
       ]
     ]
   ],
@@ -101,8 +101,83 @@
       ]
     }
   },
-  "peak_rss_mb": 1849,
-  "ru_maxrss_mb": 1857,
+  "degraded_thumbnail_only": {
+    "videos": 7,
+    "statuses": {
+      "partial": 7
+    },
+    "rank1": "5/7",
+    "found_in_results": "6/7",
+    "queries": [
+      {
+        "signal": "ocr",
+        "query": "sunset boulevard",
+        "rank": null,
+        "status": null,
+        "chips": []
+      },
+      {
+        "signal": "ocr",
+        "query": "ab burner",
+        "rank": 1,
+        "status": "partial",
+        "chips": [
+          "On-screen text:8.536",
+          "On-screen text (meaning):0.799",
+          "Visual similarity:0.37"
+        ]
+      },
+      {
+        "signal": "ocr",
+        "query": "pay yourself first",
+        "rank": 1,
+        "status": "partial",
+        "chips": [
+          "On-screen text:13.138",
+          "Caption:2.431",
+          "On-screen text (meaning):1.0"
+        ]
+      },
+      {
+        "signal": "visual",
+        "query": "green",
+        "rank": 1,
+        "status": "partial",
+        "chips": [
+          "Visual similarity:0.295"
+        ]
+      },
+      {
+        "signal": "visual",
+        "query": "something purple",
+        "rank": 1,
+        "status": "partial",
+        "chips": [
+          "Visual similarity:0.291"
+        ]
+      },
+      {
+        "signal": "visual",
+        "query": "bright yellow",
+        "rank": 2,
+        "status": "partial",
+        "chips": [
+          "Visual similarity:0.322"
+        ]
+      },
+      {
+        "signal": "visual",
+        "query": "pink",
+        "rank": 1,
+        "status": "partial",
+        "chips": [
+          "Visual similarity:0.266"
+        ]
+      }
+    ]
+  },
+  "peak_rss_mb": 1807,
+  "ru_maxrss_mb": 1851,
   "accuracy": {
     "caption": "3/3",
     "transcript": "4/4",
@@ -118,15 +193,16 @@
   },
   "rank1_total": "29/29",
   "latency_ms": {
-    "p50": 22.2,
-    "max": 26.7,
-    "mean": 19.3
+    "p50": 25.5,
+    "max": 30.2,
+    "mean": 21.7
   },
   "stats": {
     "counts": {
       "new": 0,
       "meta": 0,
-      "deep": 18,
+      "partial": 7,
+      "deep": 11,
       "dead": 0,
       "failed": 0
     },
@@ -136,12 +212,12 @@
         "pct": 100
       },
       "Transcripts": {
-        "videos": 18,
-        "pct": 100
+        "videos": 11,
+        "pct": 61
       },
       "On-screen text": {
-        "videos": 6,
-        "pct": 33
+        "videos": 4,
+        "pct": 22
       },
       "Visual": {
         "videos": 18,
@@ -157,41 +233,41 @@
       }
     },
     "disk": {
-      "db_bytes": 4464312,
+      "db_bytes": 4406776,
       "media_bytes": 282757,
-      "total_bytes": 4747069,
-      "disk_free": 103518265344,
+      "total_bytes": 4689533,
+      "disk_free": 101699473408,
       "disk_total": 134208786432,
-      "home": "/tmp/rhome"
+      "home": "/tmp/recall-e2e-p8yyagmb"
     },
     "per_stage": {
       "fetch": {
-        "avg_s": 0.25,
-        "n": 18
+        "avg_s": 0.17,
+        "n": 26
       },
       "index": {
-        "avg_s": 0.02,
-        "n": 18
+        "avg_s": 0.01,
+        "n": 26
       },
       "ocr": {
-        "avg_s": 1.03,
-        "n": 18
+        "avg_s": 0.82,
+        "n": 26
       },
       "transcribe": {
         "avg_s": 0.63,
         "n": 18
       },
       "visual": {
-        "avg_s": 0.11,
-        "n": 18
+        "avg_s": 0.1,
+        "n": 26
       },
       "wave1": {
-        "avg_s": 0.37,
+        "avg_s": 0.34,
         "n": 18
       },
       "wave2_total": {
-        "avg_s": 2.03,
-        "n": 18
+        "avg_s": 1.53,
+        "n": 26
       }
     }
   },
@@ -203,7 +279,7 @@
       "rank": 1,
       "n": 2,
       "best_t": null,
-      "ms": 23.6,
+      "ms": 29.7,
       "chips": [
         "Caption:9.403",
         "Caption (meaning):0.801"
@@ -216,7 +292,7 @@
       "rank": 1,
       "n": 1,
       "best_t": null,
-      "ms": 24.4,
+      "ms": 30.2,
       "chips": [
         "Caption:10.97",
         "Hashtag:4.835",
@@ -230,7 +306,7 @@
       "rank": 1,
       "n": 1,
       "best_t": null,
-      "ms": 26.7,
+      "ms": 27.4,
       "chips": [
         "Caption:8.506",
         "Sound:3.97",
@@ -244,7 +320,7 @@
       "rank": 1,
       "n": 2,
       "best_t": 0.0,
-      "ms": 23.7,
+      "ms": 25.1,
       "chips": [
         "Transcript phrase:2.014@0.0s",
         "Transcript:4.899@0.0s",
@@ -258,7 +334,7 @@
       "rank": 1,
       "n": 1,
       "best_t": 0.68,
-      "ms": 21.7,
+      "ms": 25.2,
       "chips": [
         "Transcript:4.164@0.7s",
         "Caption:4.164",
@@ -272,7 +348,7 @@
       "rank": 1,
       "n": 1,
       "best_t": 2.02,
-      "ms": 22.1,
+      "ms": 27.8,
       "chips": [
         "Transcript:5.579@2.0s",
         "Transcript (meaning):0.667@0.0s"
@@ -285,7 +361,7 @@
       "rank": 1,
       "n": 1,
       "best_t": 0.0,
-      "ms": 24.5,
+      "ms": 28.0,
       "chips": [
         "Transcript:9.073@0.0s",
         "Transcript (meaning):0.573@0.0s"
@@ -298,7 +374,7 @@
       "rank": 1,
       "n": 3,
       "best_t": 3.0,
-      "ms": 26.7,
+      "ms": 27.6,
       "chips": [
         "Transcript (meaning):0.498@0.0s",
         "Transcript:3.777@3.0s"
@@ -311,7 +387,7 @@
       "rank": 1,
       "n": 2,
       "best_t": 2.66,
-      "ms": 23.2,
+      "ms": 24.5,
       "chips": [
         "Hashtag:4.911",
         "Caption:2.646",
@@ -326,7 +402,7 @@
       "rank": 1,
       "n": 1,
       "best_t": 5.0,
-      "ms": 21.9,
+      "ms": 22.7,
       "chips": [
         "On-screen text:4.982@5.0s",
         "On-screen text (meaning):0.586@5.0s"
@@ -339,7 +415,7 @@
       "rank": 1,
       "n": 1,
       "best_t": 1.0,
-      "ms": 21.7,
+      "ms": 25.1,
       "chips": [
         "On-screen text:9.073@1.0s",
         "On-screen text (meaning):0.799@1.0s",
@@ -353,7 +429,7 @@
       "rank": 1,
       "n": 2,
       "best_t": 1.0,
-      "ms": 21.7,
+      "ms": 24.4,
       "chips": [
         "On-screen text:12.354@1.0s",
         "Transcript:8.221@0.0s",
@@ -368,7 +444,7 @@
       "rank": 1,
       "n": 1,
       "best_t": 1.0,
-      "ms": 23.0,
+      "ms": 26.2,
       "chips": [
         "Visual similarity:0.295@1.0s"
       ]
@@ -380,7 +456,7 @@
       "rank": 1,
       "n": 2,
       "best_t": 3.0,
-      "ms": 21.7,
+      "ms": 27.0,
       "chips": [
         "Visual similarity:0.291@3.0s"
       ]
@@ -392,7 +468,7 @@
       "rank": 1,
       "n": 1,
       "best_t": 3.0,
-      "ms": 22.9,
+      "ms": 24.0,
       "chips": [
         "Visual similarity:0.322@3.0s"
       ]
@@ -404,7 +480,7 @@
       "rank": 1,
       "n": 1,
       "best_t": 9.0,
-      "ms": 25.3,
+      "ms": 24.1,
       "chips": [
         "Visual similarity:0.266@9.0s"
       ]
@@ -416,7 +492,7 @@
       "rank": 1,
       "n": 1,
       "best_t": null,
-      "ms": 23.9,
+      "ms": 26.7,
       "chips": [
         "Caption:3.848",
         "Caption (meaning):0.648",
@@ -430,7 +506,7 @@
       "rank": 1,
       "n": 1,
       "best_t": null,
-      "ms": 21.2,
+      "ms": 26.5,
       "chips": [
         "Creator:5.525",
         "Hashtag (meaning):0.538"
@@ -467,7 +543,7 @@
       "rank": 1,
       "n": 1,
       "best_t": null,
-      "ms": 0.1,
+      "ms": 0.2,
       "chips": [
         "#desksetup:None"
       ]
@@ -479,7 +555,7 @@
       "rank": 1,
       "n": 3,
       "best_t": null,
-      "ms": 21.5,
+      "ms": 27.5,
       "chips": [
         "Sound:8.506",
         "Sound (meaning):0.736"
@@ -492,7 +568,7 @@
       "rank": 1,
       "n": 3,
       "best_t": null,
-      "ms": 23.6,
+      "ms": 25.5,
       "chips": [
         "Sound:18.146",
         "Sound (meaning):0.968"
@@ -517,7 +593,7 @@
       "rank": 1,
       "n": 1,
       "best_t": null,
-      "ms": 26.6,
+      "ms": 23.0,
       "chips": [
         "Hashtag:4.835",
         "Caption:3.644",
@@ -532,7 +608,7 @@
       "rank": 1,
       "n": 1,
       "best_t": 1.0,
-      "ms": 23.8,
+      "ms": 25.6,
       "chips": [
         "Caption:7.794",
         "Hashtag:5.426",
@@ -547,7 +623,7 @@
       "rank": 1,
       "n": 1,
       "best_t": null,
-      "ms": 0.3,
+      "ms": 0.2,
       "chips": [
         "under 6s:None"
       ]
@@ -559,7 +635,7 @@
       "rank": 1,
       "n": 2,
       "best_t": 7.78,
-      "ms": 22.2,
+      "ms": 28.4,
       "chips": [
         "Hashtag:11.94",
         "Caption:10.078",
@@ -574,7 +650,7 @@
       "rank": 1,
       "n": 1,
       "best_t": 7.0,
-      "ms": 21.7,
+      "ms": 26.6,
       "chips": [
         "On-screen text:9.964@7.0s",
         "Hashtag:4.835",

@@ -26,7 +26,7 @@ const clearTimers = () => { while (timers.length) clearInterval(timers.pop()); }
 async function refreshStats() {
   try { STATS = await api("/api/stats"); } catch (e) { return; }
   const c = STATS.counts;
-  $("#footer-left").textContent = `Recall System v${STATS.version} — ${fmtInt(STATS.live)} saves indexed (${fmtInt(c.deep)} deep, ${fmtInt(c.meta)} metadata-only${c.new ? `, ${fmtInt(c.new)} queued` : ""})`;
+  $("#footer-left").textContent = `Recall System v${STATS.version} — ${fmtInt(STATS.live)} saves indexed (${fmtInt(c.deep)} deep, ${c.partial ? `${fmtInt(c.partial)} thumbnail-only, ` : ""}${fmtInt(c.meta)} metadata-only${c.new ? `, ${fmtInt(c.new)} queued` : ""})`;
   renderClock();
 }
 function renderClock() {
@@ -50,7 +50,7 @@ function route() {
   if (path === "/clusters") return viewClusters();
   if (path === "/import") return viewImport();
   if (path === "/export") return viewExport(params);
-  if (path === "/settings") return viewSettings();
+  if (path === "/settings") return viewSettings(params);
   return viewHome();
 }
 window.addEventListener("hashchange", route);
@@ -108,6 +108,35 @@ function bindCommandBar(facets) {
   cmd.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); const h = searchHash(cmd.value, facets); if (location.hash === h) route(); else location.hash = h; } });
 }
 
+/* ------------------------------------------------------------------ shared: coverage + download banner */
+const COV_SHORT = { Captions: "captions", Transcripts: "transcripts", "On-screen text": "on-screen", Visual: "visual", Sound: "sound", Hashtags: "hashtags" };
+function coverageLine(st) {
+  if (!st || !st.live) return `<span>Index coverage: —</span>`;
+  const parts = ["Transcripts", "On-screen text", "Visual", "Captions"].filter((k) => st.coverage[k]).map((k) =>
+    `<span title="${fmtInt(st.coverage[k].videos)} of ${fmtInt(st.live)} saves have ${esc(k.toLowerCase())}">${COV_SHORT[k]} <b>${st.coverage[k].pct}%</b></span>`);
+  return `<span class="cov-line">Coverage: ${parts.join("")}</span>`;
+}
+function breakerBanner(b, env) {
+  if (!b || !b.open) return "";
+  const kind = { blocked: "TikTok returned a block page", forbidden: "TikTok refused the request (HTTP 403)", rate_limited: "TikTok is rate-limiting", cookies: "browser cookies couldn't be read", login_required: "TikTok wants a login", extract_failed: "yt-dlp couldn't parse TikTok's page", other: "unexpected yt-dlp error", no_file: "no file produced" }[b.kind] || b.kind;
+  return `<div class="alert-banner" id="breaker"><div class="privacy-icon">[!]</div><div>
+    <h4>Deep indexing paused — ${fmtInt(b.consecutive)} video downloads in a row failed (${esc(kind)})</h4>
+    <p>Your saves are still searchable by caption, creator, hashtags and thumbnail; only transcript and full on-screen-text indexing is waiting. ${esc(b.hint || "")}</p>
+    <p class="err mono" title="${esc((b.ids || []).join(", "))}">Last error: ${esc(b.message || "")}${env ? ` · yt-dlp ${esc(env.yt_dlp || "?")}${env.curl_cffi ? ` · curl_cffi ${esc(env.curl_cffi)}` : " · no curl_cffi"}` : ""}</p>
+    <ol><li>Quit Recall and start it again with run.sh / run.bat — it updates yt-dlp on every launch.</li>
+      <li>Settings → Video downloads → <b>Use cookies from my browser</b>: pick the browser you use TikTok in (Firefox is most reliable).</li>
+      <li>Still failing? Paste your browser's User-Agent into Settings, or wait an hour (TikTok rate-limits bursts).</li></ol>
+    <div class="btns"><button class="button" data-breaker="retry">Retry downloads</button><button class="button" data-breaker="thumbs">Index from thumbnails only</button><a class="button" href="#/settings?sec=downloads" style="text-decoration:none">Download settings</a></div>
+  </div></div>`;
+}
+function bindBreaker(after) {
+  $$("[data-breaker]").forEach((b) => b.addEventListener("click", async () => {
+    b.disabled = true;
+    await api(b.dataset.breaker === "retry" ? "/api/downloads/retry" : "/api/downloads/thumbnail-only", { method: "POST" });
+    await refreshStats(); if (after) after();
+  }));
+}
+
 /* ------------------------------------------------------------------ HOME */
 async function viewHome() {
   app.innerHTML = commandBar("") + `<main class="workspace"><aside class="facets" id="facets"></aside><section class="results" id="home"><div class="loading">Loading index…</div></section></main>`;
@@ -123,7 +152,8 @@ async function viewHome() {
   if ((facets.saved || []).find((x) => x.value === "This week")) ideas.push({ q: "saved last week", why: "date filter" });
   (facets.attr || []).filter((a) => a.count).slice(0, 1).forEach((a) => ideas.push({ f: { attr: [a.value] }, q: a.label, why: `${a.count} saves` }));
   $("#home").innerHTML = `
-    <div class="results-header"><span>Command bar · type to search ${fmtInt(s.live)} saves</span><span>Index coverage: ${s.deep_pct}% deep-indexed</span></div>
+    <div class="results-header"><span>Command bar · type to search ${fmtInt(s.live)} saves</span>${coverageLine(s)}</div>
+    ${breakerBanner(s.download_breaker, s.downloader)}
     <div class="home-hero">
       <span class="big-number">${fmtInt(s.live)}</span>
       <div class="empty-message">${s.live ? `saves in your private memory. Search by what was said, shown, written on screen, or how it looked.` : `Your memory is empty. Import your TikTok data export to begin — nothing leaves this machine.`}</div>
@@ -135,7 +165,7 @@ async function viewHome() {
         <li class="click" data-ex="video where a guy says stop doing this">“video where a guy says …” searches transcripts</li>
       </ul></div>
       <div><span class="facet-label">Index status</span><ul class="suggestion-list">
-        <li>${fmtInt(c.deep)} deep-indexed · ${fmtInt(c.meta)} metadata only · ${fmtInt(c.new)} waiting</li>
+        <li>${fmtInt(c.deep)} deep-indexed · ${fmtInt(c.partial)} thumbnail-only · ${fmtInt(c.meta)} metadata only · ${fmtInt(c.new)} waiting</li>
         <li>${fmtInt(c.dead)} dead links · ${fmtInt(c.failed)} failed</li>
         <li>Worker: ${esc(s.worker.state)}${s.worker.models_loaded.length ? ` · models loaded: ${esc(s.worker.models_loaded.join(", "))}` : ""}</li>
       </ul></div>
@@ -145,6 +175,7 @@ async function viewHome() {
       <span class="stat-sub">${fmtInt(v.videos)} of ${fmtInt(s.live)} saves</span><div class="cov-bar"><div style="width:${v.pct}%"></div></div></div>`).join("")}</div>`;
   $$("[data-idea]").forEach((li) => li.addEventListener("click", () => { const i = ideas[+li.dataset.idea]; goSearch(i.f ? "" : i.q, i.f || {}); }));
   $$("[data-ex]").forEach((li) => li.addEventListener("click", () => goSearch(li.dataset.ex, {})));
+  bindBreaker(() => route());
 }
 
 /* ------------------------------------------------------------------ SEARCH / RESULTS */
@@ -161,6 +192,7 @@ async function viewSearch(params) {
 
 async function runSearch(q, facets) {
   const seq = ++searchSeq;
+  if (!STATS) await refreshStats();
   const t0 = performance.now();
   let res;
   try { res = await api(`/api/search?q=${encodeURIComponent(q)}&f=${encodeURIComponent(JSON.stringify(facets))}&limit=60`); }
@@ -182,10 +214,9 @@ function parsedChips(res) {
 }
 
 function renderResults(res, q, facets) {
-  const cov = STATS ? STATS.deep_pct : "—";
   const box = $("#results");
   box.innerHTML = `<div class="results-header"><span>${fmtInt(res.total)} ${res.total === 1 ? "match" : "matches"} from ${fmtInt(res.candidates)} candidates · ${res.timing.total_ms.toFixed(0)} ms</span>
-     <span><a id="export-results">Export these results</a> &nbsp;·&nbsp; Index coverage: ${cov}%</span></div>
+     <span><a id="export-results">Export these results</a> &nbsp;·&nbsp; ${coverageLine(STATS)}</span></div>
      ${parsedChips(res)}<div class="grid dense" id="grid"></div><div class="sentinel" id="sentinel"></div>`;
   const grid = $("#grid");
   let items = res.results.slice(), rendered = 0, fetching = false, total = res.total;
@@ -252,7 +283,7 @@ function card(r, rank) {
   const attrs = Object.keys(r.attrs || {}).map((k) => ({ has_recipe: "has recipe", has_product_link: "product link", talking_head: "talking head", screen_recording: "screen rec" }[k] || k));
   return `<article class="video-doc" data-id="${esc(r.id)}">
     <div class="video-thumb">${r.thumb ? `<img loading="lazy" src="${media(r.thumb)}" alt="">` : `<span class="thumb-missing">No thumbnail</span>`}
-      <span class="rank-badge">#${rank}</span>${r.status !== "deep" ? `<span class="state-badge" title="Only caption/creator metadata indexed so far">metadata only</span>` : ""}
+      <span class="rank-badge">#${rank}</span>${r.status === "partial" ? `<span class="state-badge" title="${esc(r.error || "Video could not be downloaded")}">thumbnail only</span>` : r.status !== "deep" ? `<span class="state-badge" title="Only caption/creator metadata indexed so far">metadata only</span>` : ""}
       ${r.best_t != null ? `<span class="ts-badge">▶ ${fmtT(r.best_t)}</span>` : ""}</div>
     ${filmstrip(r)}
     <div class="doc-meta">
@@ -303,7 +334,7 @@ function renderNoResults(res, q, facets) {
   const s = res.suggestions || { broaden: [], help: [] };
   const short = q.length > 40 ? q.slice(0, 40) + "…" : q;
   $("#results").innerHTML = `
-    <div class="results-header"><span>0 matches found for query · ${res.timing.total_ms.toFixed(0)} ms</span><span>Index coverage: ${STATS ? STATS.deep_pct : "—"}%</span></div>
+    <div class="results-header"><span>0 matches found for query · ${res.timing.total_ms.toFixed(0)} ms</span>${coverageLine(STATS)}</div>
     ${parsedChips(res)}
     <div class="empty-hero">
       <span class="big-number">0 matches</span>
@@ -346,6 +377,7 @@ async function viewImport() {
     </aside>
     <section class="page-content">
       <h2 class="section-title">Add to Archive</h2>
+      <div id="breaker-slot"></div>
       <div id="src-panel"></div>
       <div class="flash" id="flash"></div>
       <div class="queue-container" id="queue"></div>
@@ -399,7 +431,7 @@ async function upload(files) {
   renderQueue(); refreshStats();
 }
 
-const STAGE_LABEL = { new: "Queued · metadata", meta: "Queued · deep index", deep: "Done", dead: "Dead link", failed: "Failed" };
+const STAGE_LABEL = { new: "Queued · metadata", meta: "Queued · deep index", partial: "Thumbnail only", deep: "Done", dead: "Dead link", failed: "Failed" };
 async function renderQueue() {
   const box = $("#queue");
   if (!box) return;
@@ -407,21 +439,23 @@ async function renderQueue() {
   try { q = await api("/api/queue"); } catch (e) { return; }
   const c = q.counts;
   const waiting = (c.new || 0) + (q.deep_index ? c.meta || 0 : 0);
+  const slot = $("#breaker-slot");
+  if (slot) { const html = breakerBanner(q.breaker, STATS && STATS.downloader); if (slot.dataset.html !== html) { slot.innerHTML = html; slot.dataset.html = html; bindBreaker(renderQueue); } }
   const name = (it) => it.caption || (it.local_path ? it.local_path.split(/[\\/]/).pop() : null) || `tiktok_video_${it.id}`;
   const metaOf = (it) => [it.creator ? "@" + it.creator : (it.source === "local" ? "local file" : it.id), it.duration ? `${Math.round(it.duration)}s` : null, it.error && it.status !== "deep" ? it.error.slice(0, 80) : null].filter(Boolean).join(" · ");
   const row = (it, done) => {
-    const p = it.stage ? Math.round(100 * (it.progress || 0)) : it.status === "deep" ? 100 : it.status === "meta" ? 10 : 0;
+    const p = it.stage ? Math.round(100 * (it.progress || 0)) : it.status === "deep" ? 100 : it.status === "partial" ? 60 : it.status === "meta" ? 10 : 0;
     return `<div class="queue-item ${done ? "status-done" : ""}"><div class="file-info"><span class="file-name" title="${esc(name(it))}">${esc(name(it))}</span><span class="file-meta" title="${esc(it.error || "")}">${esc(metaOf(it))}</span></div>
       <div class="status-tag">${esc(it.stage || STAGE_LABEL[it.status] || it.status)}</div>
       <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${p}%;"></div></div>
-      <div style="text-align: right; font-size: 11px;">${["dead", "failed"].includes(it.status) ? `<a data-retry="${esc(it.id)}" style="cursor:pointer">retry</a>` : `${p}%`}</div></div>`;
+      <div style="text-align: right; font-size: 11px;">${["dead", "failed", "partial"].includes(it.status) ? `<a data-retry="${esc(it.id)}" style="cursor:pointer">retry</a>` : `${p}%`}</div></div>`;
   };
   const active = q.active.map((x) => row(x, false)).join("");
   const pend = q.pending.filter((x) => !q.active.find((a) => a.id === x.id)).slice(0, 12).map((x) => row(x, false)).join("");
   const recent = q.recent.slice(0, 10).map((x) => row(x, true)).join("");
   box.innerHTML = `<div class="queue-header"><span>Processing Queue (${fmtInt(waiting)})</span>
       <span>Worker: ${esc(q.paused ? "paused" : q.worker)} · <a id="pause">${q.paused ? "Resume" : "Pause"}</a> · Status</span></div>
-    <div style="font-size:11px;opacity:.6;margin:-8px 0 8px">new ${fmtInt(c.new || 0)} · metadata ${fmtInt(c.meta || 0)} · deep-indexed ${fmtInt(c.deep || 0)} · dead ${fmtInt(c.dead || 0)} · failed ${fmtInt(c.failed || 0)}${q.deep_index ? "" : " · deep indexing is OFF (Settings)"}</div>
+    <div style="font-size:11px;opacity:.6;margin:-8px 0 8px">new ${fmtInt(c.new || 0)} · metadata ${fmtInt(c.meta || 0)} · deep-indexed ${fmtInt(c.deep || 0)} · thumbnail-only ${fmtInt(c.partial || 0)} · dead ${fmtInt(c.dead || 0)} · failed ${fmtInt(c.failed || 0)}${q.deep_index ? "" : " · deep indexing is OFF (Settings)"}${q.deep_index && !q.video_downloads ? " · video downloads OFF: thumbnail-only indexing" : ""}</div>
     ${active}${pend}${recent || (!active && !pend ? `<div class="queue-item status-done"><div class="file-info"><span class="file-name">Queue is empty</span><span class="file-meta">Drop a TikTok export to begin</span></div></div>` : "")}`;
   $("#pause").addEventListener("click", async () => { await api("/api/worker", { method: "POST", body: { paused: !q.paused } }); renderQueue(); });
   $$("[data-retry]").forEach((a) => a.addEventListener("click", async () => { await api(`/api/videos/${encodeURIComponent(a.dataset.retry)}/retry`, { method: "POST" }); renderQueue(); }));
@@ -529,15 +563,18 @@ const TOGGLES = [
   ["sound", "Sound & Music Indexing", "Index the track / original-sound name from video metadata", null],
   ["text_embeddings", "Semantic Text Search", "MiniLM embeddings of captions, transcript lines and on-screen text, for meaning-based matches", "index"],
 ];
-async function viewSettings() {
+const BROWSER_OPTS = [["none", "None (don't use cookies)"], ["chrome", "Chrome"], ["edge", "Edge"], ["firefox", "Firefox"], ["safari", "Safari"], ["brave", "Brave"]];
+async function viewSettings(params) {
   const [s] = await Promise.all([api("/api/settings"), refreshStats()]);
+  const env = STATS.downloader || {}, br = STATS.download_breaker || {};
+  const pr = STATS.partial_reasons || {};
   const st = STATS, ps = st.per_stage;
   const cost = (k) => k === null ? "No extra processing — read from the video's metadata" : k && ps[k] ? `Measured on this machine: ${ps[k].avg_s.toFixed(2)} s / video (avg of ${ps[k].n})` : "Not measured yet — no videos processed with this signal";
   app.innerHTML = `<section class="view-title"><h1>System Configuration</h1></section>
   <main class="workspace">
     <aside class="sidebar-nav">
       <div class="nav-group"><span class="nav-label">Preferences</span>
-        <a class="nav-item active" data-jump="indexing">Indexing</a><a class="nav-item" data-jump="privacy">Privacy</a><a class="nav-item" data-jump="storage">Storage</a><a class="nav-item" data-jump="api">API Access</a></div>
+        <a class="nav-item active" data-jump="indexing">Indexing</a><a class="nav-item" data-jump="downloads">Video Downloads</a><a class="nav-item" data-jump="privacy">Privacy</a><a class="nav-item" data-jump="storage">Storage</a><a class="nav-item" data-jump="api">API Access</a></div>
       <div class="nav-group"><span class="nav-label">Support</span>
         <a class="nav-item" data-jump="docs">Documentation</a><a class="nav-item" data-jump="issue">Report Issue</a></div>
     </aside>
@@ -550,9 +587,30 @@ async function viewSettings() {
       <div class="settings-row"><div class="setting-info"><span class="setting-name">Batch Size</span><span class="setting-desc">Videos per wave-2 batch. Models load one at a time per batch (Whisper → OCR → CLIP) to fit 8 GB RAM.</span></div>
         <select class="small-select" id="batch">${[1, 2, 4, 8].map((n) => `<option ${+s.batch_size === n ? "selected" : ""}>${n}</option>`).join("")}</select></div>
 
+      <div class="section-header" style="margin-top: 48px;" id="sec-downloads"><span>Video Downloads (yt-dlp)</span><span>yt-dlp ${esc(env.yt_dlp || "not installed")} · ${env.curl_cffi ? `curl_cffi ${esc(env.curl_cffi)}` : "no curl_cffi"}</span></div>
+      <div class="settings-row"><div class="setting-info"><span class="setting-name">Download Videos for Deep Index</span>
+        <span class="setting-desc">On: each save is downloaded temporarily for transcript, on-screen text and keyframes. Off (or when a download fails): Recall indexes the TikTok thumbnail only — visual and thumbnail-text search still work, transcripts don't.</span>
+        <span class="setting-cost">${fmtInt(STATS.counts.partial)} saves are thumbnail-only now${Object.keys(pr).length ? ` (${Object.entries(pr).map(([k, n]) => `${esc(k)}: ${fmtInt(n)}`).join(", ")})` : ""}</span></div>
+        <div class="toggle ${s.video_downloads ? "on" : "off"}" data-key="video_downloads" role="switch" aria-checked="${!!s.video_downloads}"></div></div>
+      <div class="settings-row"><div class="setting-info"><span class="setting-name">Use Cookies From My Browser</span>
+        <span class="setting-desc">Passes your browser's TikTok cookies to yt-dlp (<span class="mono">--cookies-from-browser</span>), read locally and never sent anywhere except TikTok. Helps when TikTok blocks anonymous requests. Firefox works best; Chrome/Edge on Windows may need to be fully closed, and newer Chrome builds may not be readable at all.</span></div>
+        <select class="small-select" id="cookies">${BROWSER_OPTS.map(([v, l]) => `<option value="${v}" ${s.cookies_browser === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+      <div class="settings-row"><div class="setting-info"><span class="setting-name">Cookies File (optional)</span>
+        <span class="setting-desc">Path to a Netscape-format cookies.txt exported from your browser. Overrides the browser setting above.</span></div>
+        <input class="text-input settings-input" id="cookies-file" placeholder="e.g. C:\\Users\\me\\tiktok-cookies.txt" value="${esc(s.cookies_file || "")}"></div>
+      <div class="settings-row"><div class="setting-info"><span class="setting-name">Browser Impersonation</span>
+        <span class="setting-desc">Auto: try a plain desktop-browser request first, then curl_cffi TLS impersonation${env.impersonation ? "" : " (curl_cffi not installed here, so impersonation is unavailable)"}, then yt-dlp's own default — and remember whichever worked. Always: impersonate first. Never: no impersonation.</span></div>
+        <select class="small-select" id="imp">${["auto", "always", "never"].map((v) => `<option ${s.ytdlp_impersonate === v ? "selected" : ""}>${v}</option>`).join("")}</select></div>
+      <div class="settings-row"><div class="setting-info"><span class="setting-name">Custom User-Agent (optional)</span>
+        <span class="setting-desc">If downloads keep failing, paste your real browser's User-Agent here (search “what is my user agent”). Empty = Recall's built-in desktop Chrome UA.</span></div>
+        <input class="text-input settings-input" id="ua" placeholder="Mozilla/5.0 …" value="${esc(s.ytdlp_user_agent || "")}"></div>
+      <div class="settings-row"><div class="setting-info"><span class="setting-name">Download Health</span>
+        <span class="setting-desc">${br.open ? `<b>Paused</b> after ${fmtInt(br.consecutive)} consecutive failures [${esc(br.kind)}]: ${esc(br.message || "")}` : br.consecutive ? `${fmtInt(br.consecutive)} recent consecutive failure(s) [${esc(br.kind)}] — the queue pauses at ${fmtInt(br.threshold)}` : "OK — no recent download failures"}</span></div>
+        <button class="button" id="dl-retry">Retry failed downloads</button></div>
+
       <div class="section-header" style="margin-top: 48px;" id="sec-storage"><span>Local Storage Statistics</span><span>${esc(st.disk.home)}</span></div>
       <div class="stat-grid">
-        <div class="stat-card"><span class="stat-label">Total Indexed Items</span><span class="stat-value">${fmtInt(st.live)}</span><span class="stat-sub">${fmtInt(st.counts.deep)} deep · ${fmtInt(st.counts.meta)} metadata · ${fmtInt(st.counts.dead)} dead</span></div>
+        <div class="stat-card"><span class="stat-label">Total Indexed Items</span><span class="stat-value">${fmtInt(st.live)}</span><span class="stat-sub">${fmtInt(st.counts.deep)} deep · ${fmtInt(st.counts.partial)} thumbnail-only · ${fmtInt(st.counts.meta)} metadata · ${fmtInt(st.counts.dead)} dead</span></div>
         <div class="stat-card"><span class="stat-label">Disk Usage</span><span class="stat-value">${fmtBytes(st.disk.total_bytes)}</span><span class="stat-sub">DB ${fmtBytes(st.disk.db_bytes)} · thumbnails/keyframes ${fmtBytes(st.disk.media_bytes)}</span></div>
         ${Object.entries(st.coverage).filter(([k]) => ["Transcripts", "On-screen text", "Visual", "Sound"].includes(k)).map(([k, v]) => `<div class="stat-card"><span class="stat-label">${esc(k)}</span><span class="stat-value">${v.pct}%</span><span class="stat-sub">${fmtInt(v.videos)} of ${fmtInt(st.live)} saves</span></div>`).join("")}
         <div class="stat-card"><span class="stat-label">Search Latency</span><span class="stat-value">${st.latency.avg_ms != null ? st.latency.avg_ms.toFixed(0) + " ms" : "—"}</span><span class="stat-sub">${st.latency.n ? `average of last ${st.latency.n} searches (server-side)` : "no searches yet"}</span></div>
@@ -593,6 +651,12 @@ async function viewSettings() {
   }));
   $("#whisper").addEventListener("change", (e) => api("/api/settings", { method: "POST", body: { whisper_model: e.target.value } }));
   $("#batch").addEventListener("change", (e) => api("/api/settings", { method: "POST", body: { batch_size: +e.target.value } }));
+  $("#cookies").addEventListener("change", (e) => api("/api/settings", { method: "POST", body: { cookies_browser: e.target.value } }));
+  $("#imp").addEventListener("change", (e) => api("/api/settings", { method: "POST", body: { ytdlp_impersonate: e.target.value } }));
+  $("#cookies-file").addEventListener("change", (e) => api("/api/settings", { method: "POST", body: { cookies_file: e.target.value.trim() } }));
+  $("#ua").addEventListener("change", (e) => api("/api/settings", { method: "POST", body: { ytdlp_user_agent: e.target.value.trim() } }));
+  $("#dl-retry").addEventListener("click", async (e) => { const r = await api("/api/downloads/retry", { method: "POST" }); e.target.textContent = `Re-queued ${r.requeued}`; refreshStats(); });
+  if (params && params.get("sec")) setTimeout(() => $(`#sec-${params.get("sec")}`)?.scrollIntoView({ block: "start" }), 0);
   $$("[data-jump]").forEach((a) => a.addEventListener("click", () => {
     $$("[data-jump]").forEach((x) => x.classList.toggle("active", x === a));
     $(`#sec-${a.dataset.jump}`).scrollIntoView({ behavior: "smooth", block: "start" });

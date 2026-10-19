@@ -5,7 +5,7 @@ import logging
 import threading
 import time
 
-from . import clusters, db, pipeline
+from . import clusters, db, downloader, pipeline
 
 log = logging.getLogger("recall.worker")
 
@@ -48,6 +48,7 @@ class Worker:
     def _run(self) -> None:
         con = db.connect()
         provider = None
+        breaker = downloader.Breaker(con)
         while not self._stop.is_set():
             try:
                 s = db.get_settings(con)
@@ -59,21 +60,23 @@ class Worker:
                 self.state = "metadata"
                 n1 = pipeline.wave1_batch(con, provider, s, limit=10, stop=self._stop.is_set)
                 n2 = 0
-                if n1 == 0 and s.get("deep_index", True):
+                tripped = bool(s.get("deep_index", True) and s.get("video_downloads", True) and breaker.is_open())
+                if n1 == 0 and s.get("deep_index", True) and not tripped:
+                    # (when tripped, the circuit breaker holds the deep queue until the user presses Retry)
                     self.state = "deep-indexing"
-                    n2 = pipeline.wave2_batch(con, provider, s, stop=self._stop.is_set)
+                    n2 = pipeline.wave2_batch(con, provider, s, stop=self._stop.is_set, breaker=breaker)
                 if n1 or n2:
                     self.dirty_clusters = True
                     continue
-                live = con.execute("SELECT count(*) FROM videos WHERE status IN ('meta','deep')").fetchone()[0]
+                live = con.execute("SELECT count(*) FROM videos WHERE status IN ('meta','partial','deep')").fetchone()[0]
                 pending = con.execute("SELECT count(*) FROM videos WHERE status IN ('new') OR (status='meta' AND ?)",
-                                      (1 if s.get("deep_index", True) else 0,)).fetchone()[0]
+                                      (1 if s.get("deep_index", True) and not tripped else 0,)).fetchone()[0]
                 if self.dirty_clusters and pending == 0 and live >= 4:
                     self.state = "clustering"
                     clusters.recluster(con)
                     self.dirty_clusters = False
                     self.last_cluster_n = live
-                self.state = "idle"
+                self.state = "paused · downloads failing" if tripped else "idle"
                 self._wake.wait(5); self._wake.clear()
             except Exception as e:  # never let the worker die
                 log.exception("worker error")

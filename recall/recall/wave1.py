@@ -43,9 +43,9 @@ def fetch_oembed(url: str, client: httpx.Client) -> dict:
         r = client.get(OEMBED, params={"url": url}, timeout=20)
     except httpx.HTTPError as e:
         raise Transient(str(e)) from e
-    if r.status_code in (429, 500, 502, 503, 504):
+    if r.status_code in (403, 429, 500, 502, 503, 504):   # 403 here is rate limiting, not a dead link
         raise Transient(f"HTTP {r.status_code}")
-    if r.status_code in (400, 403, 404):
+    if r.status_code in (400, 404):
         raise Dead(f"oEmbed HTTP {r.status_code}")
     if r.status_code != 200:
         raise Transient(f"HTTP {r.status_code}")

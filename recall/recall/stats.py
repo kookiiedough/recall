@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 import shutil
 
-from . import config, db
+from . import config, db, downloader
 
 
 def dir_size(p) -> int:
@@ -22,12 +22,12 @@ def overview(con=None) -> dict:
     con = con or db.get()
     counts = {s: 0 for s in db.STATUSES}
     counts.update(dict(con.execute("SELECT status, count(*) FROM videos GROUP BY status").fetchall()))
-    live = counts["meta"] + counts["deep"]
+    live = counts["meta"] + counts["partial"] + counts["deep"]
     def cov(kind: str) -> int:
         return con.execute("SELECT count(DISTINCT c.video_id) FROM chunks c JOIN videos v ON v.id=c.video_id "
-                           "WHERE c.kind=? AND v.status IN ('meta','deep')", (kind,)).fetchone()[0]
+                           "WHERE c.kind=? AND v.status IN ('meta','partial','deep')", (kind,)).fetchone()[0]
     vis = con.execute("SELECT count(DISTINCT x.video_id) FROM vectors x JOIN videos v ON v.id=x.video_id "
-                      "WHERE x.space='image' AND v.status IN ('meta','deep')").fetchone()[0]
+                      "WHERE x.space='image' AND v.status IN ('meta','partial','deep')").fetchone()[0]
     coverage = {}
     for name, n in (("Captions", cov("caption")), ("Transcripts", cov("transcript")), ("On-screen text", cov("ocr")),
                     ("Visual", vis), ("Sound", cov("sound")), ("Hashtags", cov("hashtag"))):
@@ -49,4 +49,9 @@ def overview(con=None) -> dict:
         "latency": {"avg_ms": round(lat[0], 1) if lat[0] else None, "n": lat[1], "last_ms": round(last[0], 1) if last else None},
         "per_stage": per_stage,
         "clusters": con.execute("SELECT count(*) FROM clusters WHERE size > 0").fetchone()[0],
+        "partial_reasons": dict(con.execute(
+            "SELECT coalesce(json_extract(signals, '$.download_error'), 'other'), count(*) FROM videos "
+            "WHERE status='partial' GROUP BY 1").fetchall()),
+        "download_breaker": downloader.Breaker(con).public(),
+        "downloader": downloader.environment(),
     }

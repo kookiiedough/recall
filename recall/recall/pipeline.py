@@ -1,6 +1,7 @@
 """Ingestion pipeline: wave 1 (oEmbed metadata) and wave 2 (deep index), resumable and idempotent.
 
-Status machine (see db.TRANSITIONS):  new -> meta -> deep,  new -> dead,  * -> failed (after retries).
+Status machine (see db.TRANSITIONS):  new -> meta -> deep,  new -> dead,  * -> failed (after retries),
+meta -> partial when the video can't be downloaded (thumbnail-only CLIP/OCR index; retried later).
 Every step is keyed by video id and *replaces* that video's derived rows, so re-running is safe and an
 interrupted batch simply resumes: videos that never reached `deep` are picked up again next time.
 """
@@ -19,7 +20,7 @@ from typing import Any, Callable
 import numpy as np
 
 from . import attrs as attrs_mod
-from . import config, db, media, models, textutil, wave1
+from . import config, db, downloader, media, models, textutil, wave1
 
 log = logging.getLogger("recall.pipeline")
 MAX_ATTEMPTS = 3
@@ -27,11 +28,16 @@ MAX_ATTEMPTS = 3
 
 # ------------------------------------------------------------------ providers
 class TikTokProvider:
-    """Real network provider: oEmbed for wave 1, yt-dlp for wave 2."""
+    """Real network provider: oEmbed for wave 1, yt-dlp (via recall.downloader) for wave 2."""
 
     def __init__(self, rate: float = 1.0):
         self.rl = wave1.RateLimiter(rate)
         self.client = wave1.client()
+        self.settings: dict = {}
+        self.wait: Callable[[float], bool] = lambda s: (time.sleep(s), False)[1]
+
+    def configure(self, settings: dict, wait: Callable[[float], bool]) -> None:
+        self.settings, self.wait = settings, wait
 
     def metadata(self, video_id: str, url: str | None) -> dict:
         self.rl.wait()
@@ -42,13 +48,8 @@ class TikTokProvider:
 
     def fetch_video(self, video_id: str, url: str | None, tmp: Path) -> tuple[Path | None, dict, bool]:
         self.rl.wait()
-        try:
-            path, meta = media.ytdlp_download(wave1.canonical_url(video_id, url), tmp)
-        except Exception as e:  # yt_dlp.utils.DownloadError etc.
-            msg = str(e)
-            if re.search(r"(unavailable|private|removed|not available|404|does not exist)", msg, re.I):
-                raise wave1.Dead(msg[:300]) from e
-            raise
+        path, meta, profile = downloader.download(wave1.canonical_url(video_id, url), tmp, self.settings, self.wait)
+        meta["_profile"] = profile
         return path, meta, True
 
 
@@ -69,6 +70,7 @@ class Item:
     img_vecs: list[tuple[float | None, np.ndarray]] = field(default_factory=list)
     timings: dict[str, float] = field(default_factory=dict)
     failed: str | None = None
+    degraded: tuple[str, str] | None = None   # (error kind, message): download failed -> thumbnail-only index
 
     @property
     def id(self) -> str:
@@ -148,7 +150,12 @@ def dedupe_ocr(entries: list[tuple[float, str, int]]) -> list[dict]:
 
 
 # ------------------------------------------------------------------ wave 1
+_wave1_pause = {"until": 0.0, "n": 0}   # oEmbed rate-limit backoff (HTTP 429/403): 30 s, 60 s, ... max 10 min
+
+
 def wave1_batch(con, provider, settings: dict, limit: int = 20, stop: Callable[[], bool] = lambda: False) -> int:
+    if time.time() < _wave1_pause["until"]:
+        return 0
     rows = [db.row_to_dict(r) for r in con.execute(
         "SELECT * FROM videos WHERE status='new' ORDER BY saved_at DESC LIMIT ?", (limit,))]
     done = 0
@@ -176,12 +183,20 @@ def wave1_batch(con, provider, settings: dict, limit: int = 20, stop: Callable[[
                 db.set_status(con, vid, "dead", error=str(e)[:300], stage=None)
                 continue
             except Exception as e:  # transient
+                if re.search(r"HTTP (429|403)", str(e)):
+                    _wave1_pause["n"] += 1
+                    pause = min(600.0, 30.0 * 2 ** (_wave1_pause["n"] - 1))
+                    _wave1_pause["until"] = time.time() + pause
+                    log.warning("oEmbed rate-limited (%s); pausing metadata fetches for %.0f s", e, pause)
+                    db.update(con, vid, error=f"metadata: {e} (rate-limited, will retry)"[:300], stage=None)
+                    break
                 att = (v["attempts"] or 0) + 1
                 if att >= MAX_ATTEMPTS + 2:
                     db.set_status(con, vid, "failed", attempts=att, error=f"metadata: {e}"[:300], stage=None)
                 else:
                     db.update(con, vid, attempts=att, error=f"metadata: {e}"[:300], stage=None)
                 continue
+        _wave1_pause["n"] = 0
         write_meta_chunks(con, vid, settings)
         stat(con, vid, "wave1", time.time() - t0)
         con.commit()
@@ -205,11 +220,37 @@ def _fail(con, it: Item, msg: str, dead: bool = False) -> None:
         db.update(con, it.id, error=msg[:300], stage=None, attempts=att, progress=0.1)
 
 
-def stage_fetch(con, provider, settings: dict, it: Item) -> None:
+def _wait_fn(stop: Callable[[], bool]) -> Callable[[float], bool]:
+    """Interruptible sleep: returns True if the worker was asked to stop while waiting."""
+    def wait(seconds: float) -> bool:
+        end = time.time() + seconds
+        while time.time() < end:
+            if stop():
+                return True
+            time.sleep(min(0.5, max(0.0, end - time.time())))
+        return stop()
+    return wait
+
+
+def _degrade(con, it: Item, kind: str, msg: str) -> None:
+    """Download failed (or downloads are off): keep wave-1 metadata and index the oEmbed thumbnail only."""
+    it.degraded = (kind, msg)
+    th = it.row.get("thumb")
+    thp = config.media_dir() / th if th else None
+    if thp and thp.exists():
+        it.samples = [(None, thp)]          # OCR the thumbnail; no timestamp (it's not a frame of known time)
+    _progress(con, it, "thumbnail only · queued: OCR", 0.2)
+
+
+def stage_fetch(con, provider, settings: dict, it: Item, breaker: downloader.Breaker | None = None) -> None:
     t0 = time.time()
     _progress(con, it, "downloading", 0.15)
     it.work = config.tmp_dir() / it.id
     it.work.mkdir(parents=True, exist_ok=True)
+    if it.row["source"] != "local" and not settings.get("video_downloads", True):
+        _degrade(con, it, "disabled", "video downloads are off in Settings")
+        it.timings["fetch"] = time.time() - t0
+        return
     try:
         if it.row["source"] == "local":
             it.video, meta, it.is_temp = Path(it.row["local_path"]), {}, False
@@ -218,13 +259,25 @@ def stage_fetch(con, provider, settings: dict, it: Item) -> None:
         else:
             it.video, meta, it.is_temp = provider.fetch_video(it.id, it.row["url"], it.work)
         if not it.video or not Path(it.video).exists():
-            raise RuntimeError("download produced no file")
+            raise downloader.DownloadError("no_file", "download produced no file")
     except wave1.Dead as e:
         _fail(con, it, f"download: {e}", dead=True)
         return
     except Exception as e:
-        _fail(con, it, f"download: {e}")
+        if it.row["source"] == "local":
+            _fail(con, it, f"local file: {e}")
+            return
+        kind, msg = (e.kind, e.message) if isinstance(e, downloader.DownloadError) else \
+            (downloader.classify(str(e)), downloader.concise(str(e)))
+        log.warning("download failed %s [%s] %s", it.id, kind, msg)   # one concise line per video
+        if breaker:
+            breaker.failure(kind, msg, it.id)
+        _degrade(con, it, kind, msg)
+        it.timings["fetch"] = time.time() - t0
         return
+    if breaker and it.row["source"] != "local":
+        breaker.success()
+    it.row["_profile"] = meta.get("_profile")
     fields: dict[str, Any] = {}
     desc = meta.get("description") or meta.get("title")
     if desc and len(desc) > len(it.row.get("caption") or ""):
@@ -239,7 +292,7 @@ def stage_fetch(con, provider, settings: dict, it: Item) -> None:
             fields["creator"] = (meta.get("uploader") or meta.get("uploader_id") or "").lower()
     if meta.get("timestamp"):
         fields["uploaded_at"] = float(meta["timestamp"])
-    if not it.row.get("thumb") and meta.get("thumbnail"):
+    if not it.row.get("thumb") and meta.get("thumbnail") and getattr(provider, "client", None):
         try:
             th = wave1.download_thumb(meta["thumbnail"], it.id, provider.client)
             if th:
@@ -273,6 +326,7 @@ def stage_fetch(con, provider, settings: dict, it: Item) -> None:
             db.update(con, it.id, thumb=f"{it.id}/thumb.jpg")
             it.row["thumb"] = f"{it.id}/thumb.jpg"
     it.timings["fetch"] = time.time() - t0
+    _progress(con, it, "queued: transcribe", 0.25)
 
 
 def stage_transcribe(con, settings: dict, items: list[Item]) -> None:
@@ -295,6 +349,7 @@ def stage_transcribe(con, settings: dict, items: list[Item]) -> None:
         except Exception as e:
             log.warning("transcribe failed for %s: %s", it.id, e)
         it.timings["transcribe"] = time.time() - t0
+        _progress(con, it, "queued: OCR", 0.5)
     models.unload("whisper")  # free RAM before the next heavy model
 
 
@@ -305,7 +360,7 @@ def stage_ocr(con, settings: dict, items: list[Item]) -> None:
     eng = models.ocr()
     for it in todo:
         t0 = time.time()
-        _progress(con, it, "reading on-screen text", 0.6)
+        _progress(con, it, ("thumbnail only · " if it.degraded else "") + "reading on-screen text", 0.6)
         raw: list[tuple[float, str, int]] = []
         for t, p in it.samples:
             try:
@@ -318,6 +373,7 @@ def stage_ocr(con, settings: dict, items: list[Item]) -> None:
                 raw.append((t, " ".join(txts), len(txts)))
         it.ocr = dedupe_ocr(raw)
         it.timings["ocr"] = time.time() - t0
+        _progress(con, it, ("thumbnail only · " if it.degraded else "") + "queued: visual", 0.7)
     models.unload("ocr")
 
 
@@ -333,7 +389,7 @@ def stage_visual(con, settings: dict, items: list[Item]) -> None:
         _label_vecs = models.clip_text(list(attrs_mod.ZS_LABELS.values()))
     for it in todo:
         t0 = time.time()
-        _progress(con, it, "visual embedding", 0.8)
+        _progress(con, it, ("thumbnail only · " if it.degraded else "") + "visual embedding", 0.8)
         paths, ts = [], []
         for t, p in it.keyframes:
             paths.append(str(p)); ts.append(t)
@@ -342,14 +398,15 @@ def stage_visual(con, settings: dict, items: list[Item]) -> None:
             paths.append(str(config.media_dir() / th)); ts.append(None)
         vecs = models.clip_images(paths)
         it.img_vecs = list(zip(ts, vecs))
-        kf = np.array([v for t, v in it.img_vecs if t is not None]) if it.keyframes else np.zeros((0, 512))
+        kf = np.array([v for t, v in it.img_vecs if t is not None]) if it.keyframes else \
+            np.array([v for _, v in it.img_vecs]) if it.img_vecs else np.zeros((0, 512))
         it.frame_labels = attrs_mod.zero_shot(kf, _label_vecs) if len(kf) else []
         it.timings["visual"] = time.time() - t0
 
 
 def finalize(con, settings: dict, it: Item) -> None:
     t0 = time.time()
-    _progress(con, it, "indexing", 0.9)
+    _progress(con, it, ("thumbnail only · " if it.degraded else "") + "indexing", 0.9)
     vid = it.id
     rows = [("transcript", s["t0"], s["t1"], s["text"], {"words": s["words"]}) for s in it.segments]
     rows += [("ocr", o["t"], o["t_end"], o["text"], None) for o in it.ocr]
@@ -373,9 +430,22 @@ def finalize(con, settings: dict, it: Item) -> None:
         "sound": bool(v.get("sound")) if settings.get("sound", True) else None,
         "frame_labels": it.frame_labels,
     }
+    if it.row.get("_profile"):
+        signals["download_profile"] = it.row["_profile"]
     frames = [{"t": round(t, 2), "path": str(p.relative_to(config.media_dir()))} for t, p in it.keyframes]
-    db.set_status(con, vid, "deep", attrs=a, signals=signals, frames=frames, stage=None, progress=1.0,
-                  error=None, attempts=0)
+    if it.degraded:
+        kind, msg = it.degraded
+        att = (it.row.get("attempts") or 0) + (0 if kind == "disabled" else 1)
+        signals.update(degraded=True, download_error=kind, transcript=None if signals["transcript"] is None else False,
+                       download_retry=1 if (kind == "disabled" or (downloader.KIND_RETRY.get(kind, True)
+                                                                   and att < MAX_ATTEMPTS)) else 0)
+        reason = "video downloads are off — thumbnail-only index" if kind == "disabled" else \
+            f"download failed [{kind}]: {msg} — thumbnail-only index"
+        db.set_status(con, vid, "partial", attrs=a, signals=signals, frames=[], stage=None, progress=0.6,
+                      error=reason[:300], attempts=att)
+    else:
+        db.set_status(con, vid, "deep", attrs=a, signals=signals, frames=frames, stage=None, progress=1.0,
+                      error=None, attempts=0)
     it.timings["index"] = time.time() - t0
     for k, s in it.timings.items():
         stat(con, vid, k, s)
@@ -390,29 +460,70 @@ def cleanup(it: Item) -> None:
         shutil.rmtree(it.work, ignore_errors=True)
 
 
+def _retry_due(con, settings: dict, limit: int) -> list:
+    """partial videos whose download should be retried now (exponential delay: d, 3d, 9d ...)."""
+    if not settings.get("video_downloads", True):
+        return []
+    base = float(settings.get("download_retry_delay_s", 600))
+    rows = con.execute("SELECT * FROM videos WHERE status='partial' AND source!='local' AND "
+                       "json_extract(signals, '$.download_retry')=1 ORDER BY updated_at LIMIT 200").fetchall()
+    now = time.time()
+    due = [r for r in rows if r["attempts"] == 0 or now - (r["updated_at"] or 0) >= base * 3 ** max(0, r["attempts"] - 1)]
+    return due[:limit]
+
+
+def _mark_waiting(con, items: list[Item], label: str, p: float) -> None:
+    for it in items:
+        if not it.failed:
+            _progress(con, it, ("thumbnail only · " if it.degraded else "") + label, p)
+
+
 def wave2_batch(con, provider, settings: dict, batch_size: int | None = None,
-                stop: Callable[[], bool] = lambda: False, ids: list[str] | None = None) -> int:
+                stop: Callable[[], bool] = lambda: False, ids: list[str] | None = None,
+                breaker: downloader.Breaker | None = None) -> int:
     n = int(batch_size or settings.get("batch_size", 4))
     if ids:
         q = ",".join("?" * len(ids))
-        rows = con.execute(f"SELECT * FROM videos WHERE status='meta' AND id IN ({q}) LIMIT ?", (*ids, n)).fetchall()
+        rows = con.execute(f"SELECT * FROM videos WHERE status IN ('meta','partial') AND id IN ({q}) LIMIT ?",
+                           (*ids, n)).fetchall()
     else:
         rows = con.execute("SELECT * FROM videos WHERE status='meta' ORDER BY saved_at DESC LIMIT ?", (n,)).fetchall()
+        if len(rows) < n and not (breaker and breaker.is_open()):
+            rows = list(rows) + _retry_due(con, settings, n - len(rows))
     items = [Item(db.row_to_dict(r)) for r in rows]
     if not items:
         return 0
+    wait = _wait_fn(stop)
+    if hasattr(provider, "configure"):
+        provider.configure(settings, wait)
+    _mark_waiting(con, items, "queued: download", 0.12)
     try:
+        fetched: list[Item] = []
         for it in items:
             if stop():
                 return 0
-            stage_fetch(con, provider, settings, it)
+            if breaker and it.row["source"] != "local" and settings.get("video_downloads", True):
+                if breaker.is_open():
+                    break                    # circuit open: leave the rest queued, UI shows a banner
+                if wait(breaker.backoff_s()):  # exponential backoff while failures pile up
+                    return 0
+            stage_fetch(con, provider, settings, it, breaker)
+            fetched.append(it)
+        for it in items:
+            if it not in fetched:
+                db.update(con, it.id, stage=None)
+        items = fetched
         # models run sequentially over the whole batch: whisper -> OCR -> CLIP -> MiniLM
         stage_transcribe(con, settings, items)
         if stop():
             return 0
+        _mark_waiting(con, [i for i in items if not i.wav or not settings.get("transcripts", True)],
+                      "queued: OCR", 0.5)
         stage_ocr(con, settings, items)
         if stop():
             return 0
+        _mark_waiting(con, [i for i in items if not i.samples or not settings.get("ocr", True)],
+                      "queued: visual", 0.7)
         stage_visual(con, settings, items)
         done = 0
         for it in items:
@@ -423,7 +534,7 @@ def wave2_batch(con, provider, settings: dict, batch_size: int | None = None,
     finally:
         for it in items:
             cleanup(it)
-        for it in items:  # interrupted items fall back to 'meta' and are retried later
-            r = con.execute("SELECT status FROM videos WHERE id=?", (it.id,)).fetchone()
-            if r and r["status"] == "meta":
+        for it in items:  # interrupted items fall back to their queue state and are retried later
+            r = con.execute("SELECT status, stage FROM videos WHERE id=?", (it.id,)).fetchone()
+            if r and r["status"] in ("meta", "partial") and r["stage"] is not None:
                 db.update(con, it.id, stage=None)

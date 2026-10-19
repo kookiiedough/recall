@@ -124,13 +124,61 @@ at a time) was **≈ 1.8–1.9 GB** in every run. Search takes **≈ 20–60 ms*
 encoders are warm (they are preloaded at startup, ≈ 10 s). Disk: about 0.2 MB per save (DB, thumbnail, keyframes).
 To lower RAM or CPU: choose Whisper `tiny`, turn OCR off (the biggest CPU cost), or set batch size 1.
 
-## 5. Known limits — please read
+## 5. Downloads failing? ("Unexpected response from webpage request")
+
+If wave 2 fails for every video with
+`ERROR: [TikTok] <id>: Unexpected response from webpage request; please report this issue …`, TikTok is answering
+yt-dlp with a block page instead of the video page. This started on 10 Aug 2026 (yt-dlp issue
+[#17403](https://github.com/yt-dlp/yt-dlp/issues/17403), fixed in yt-dlp 2026.08.19) and came back on 1 Sep 2026
+for many users on 2026.08.19 itself (issue [#17604](https://github.com/yt-dlp/yt-dlp/issues/17604), still open as of
+Oct 2026). Reports in those issues point to a TikTok bot heuristic that looks at the **User-Agent / TLS fingerprint**
+(the `chrome-150` curl_cffi impersonation target and Chrome 140–149 user agents get blocked) and at the **IP address**
+(bursts of requests make it worse). It is not a Recall bug and no single setting fixes it everywhere.
+
+What Recall does about it:
+
+* `run.sh` / `run.bat` upgrade `yt-dlp[default,curl-cffi]` on **every launch** (`RECALL_NO_UPDATE=1` skips this,
+  `RECALL_YTDLP_NIGHTLY=1` installs the nightly build).
+* Each download tries up to three **request profiles**: a desktop-Chrome User-Agent outside the blocked range,
+  curl_cffi impersonation (when curl_cffi is installed), then yt-dlp's own default. There is a 2 s / 4 s pause
+  between profiles, and the profile that worked is tried first next time.
+* One concise log line per failed video (`download failed <id> [blocked] Unexpected response …`). yt-dlp's own error
+  printing is turned off.
+* **Exponential backoff and a circuit breaker.** Pauses of 5, 10, 20 and 40 s follow consecutive failures. After
+  5 in a row with the same error (or a single cookie error), the deep queue pauses and Home / Import show a banner
+  with **Retry downloads** and **Index from thumbnails only**. If yt-dlp was upgraded since the pause, the next start
+  retries automatically.
+* A save whose download fails is **never lost**. It becomes *thumbnail only*: its caption, creator, hashtags and
+  sound stay searchable, and CLIP + OCR run on the TikTok thumbnail so visual and thumbnail-text search still
+  partly work. The card and queue show the reason. Retriable failures are retried automatically after 10 min,
+  then 30 min, up to 3 attempts.
+
+What to try on your machine, in order:
+
+1. Quit Recall and start it again with `run.sh` / `run.bat`. That gets the newest yt-dlp. Check the version
+   it prints, or look at Settings → Video Downloads.
+2. Settings → Video Downloads → **Use cookies from my browser**: choose the browser where you are logged into
+   TikTok. **Firefox** is the most reliable. On Windows, Chrome/Edge must be completely closed, and recent Chrome
+   versions encrypt cookies in a way yt-dlp often can't read (you'll get a clear "cookies" banner). A
+   `cookies.txt` exported with a browser extension also works (Cookies File setting).
+3. Paste your real browser's User-Agent into **Custom User-Agent**.
+4. Try **Browser Impersonation → never** (or **always**). TikTok has blocked each one at different times.
+5. If you imported hundreds of saves at once, wait an hour and press **Retry downloads**. TikTok rate-limits bursts.
+6. Still blocked: start once with `RECALL_YTDLP_NIGHTLY=1`. You can also turn **Download Videos** off: everything
+   is then indexed from thumbnails, and nothing is downloaded at all.
+
+Manual check outside Recall (inside the venv):
+`python -m yt_dlp -v --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36" --cookies-from-browser firefox -F <tiktok-url>`
+
+## 6. Known limits — please read
 
 * **yt-dlp downloading is against TikTok's Terms of Service** and can break whenever TikTok changes its site.
   Deep indexing is for **personal use only**, on videos you saved yourself. Turn *Deep Indexing* off in
   Settings to use only TikTok's official oEmbed endpoint (caption / creator / thumbnail search still works).
 * Photo-carousel posts have no video frames, so they get a transcript of the audio but no OCR or visual signal (seen in testing).
 * Private, deleted or region-blocked videos are marked **dead** (oEmbed 400/404). They stay out of results and can be retried.
+  Videos that oEmbed can see but yt-dlp can't download become **thumbnail only** (see §5). They stay searchable,
+  but they have no transcript.
 * **iOS share-sheet capture is not supported**. A **browser extension** for one-click saving is planned for v2.
 * **MP4 clip export is not implemented** (videos are deleted after indexing). JSON and CSV export work.
 * **Encrypted storage (SQLCipher) is not included**: its Python bindings need a native build on Windows. Use
@@ -139,7 +187,7 @@ To lower RAM or CPU: choose Whisper `tiny`, turn OCR off (the biggest CPU cost),
 * Thresholds for "semantic" and "visual" hits were calibrated on small test sets. Very short or vague queries can over- or under-match.
 * The first launch downloads ≈ 0.9 GB of models from Hugging Face. After that, Recall needs the network only for TikTok.
 
-## 6. Development & tests
+## 7. Development & tests
 
 ```bash
 pip install -r requirements-dev.txt && python -m playwright install chromium
@@ -156,4 +204,4 @@ python scripts/screenshots.py http://127.0.0.1:8765 fixtures/out/user_data.json
 
 Layout: `recall/` (`db.py` schema + state machine, `importer.py` export parsing, `pipeline.py` waves 1/2,
 `models.py` model budget, `queryparse.py`, `search.py`, `fusion.py`, `clusters.py`, `attrs.py`, `server.py`,
-`worker.py`, `static/` UI), `tests/`, `fixtures/`, `scripts/`, `screenshots/`.
+`worker.py`, `downloader.py` yt-dlp profiles / cookies / circuit breaker, `static/` UI), `tests/`, `fixtures/`, `scripts/`, `screenshots/`.

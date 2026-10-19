@@ -19,6 +19,7 @@ def get(base, path):
 
 
 def main(base: str, export: str | None) -> None:
+    """Needs RECALL_HOME + RECALL_FIXTURE set to the same values as the running server."""
     OUT.mkdir(exist_ok=True)
     with sync_playwright() as p:
         b = p.chromium.launch()
@@ -37,7 +38,7 @@ def main(base: str, export: str | None) -> None:
                        for a in q["active"]) and q["counts"].get("deep", 0) > 0:
                     break
                 time.sleep(0.5)
-            time.sleep(1.6)
+            time.sleep(0.2)
         pg.screenshot(path=str(OUT / "03_import_queue.png"))
         # wait for the queue to drain and clusters to be built
         for _ in range(900):
@@ -70,6 +71,44 @@ def main(base: str, export: str | None) -> None:
             pg.wait_for_timeout(800)
             pg.screenshot(path=str(OUT / f"{name}.png"))
         pg.screenshot(path=str(OUT / "07_settings_full.png"), full_page=True)
+        pg.goto(base + "/#/settings?sec=downloads")
+        pg.wait_for_selector("#sec-downloads"); pg.wait_for_timeout(800)
+        pg.screenshot(path=str(OUT / "07b_settings_downloads.png"))
+        # Circuit-breaker banner. The fixture can't make TikTok block us on demand, so this state is SIMULATED:
+        # 5 consecutive 'blocked' failures are recorded in the breaker and two saves are run through the real
+        # thumbnail-only (degraded) path with a provider that raises TikTok's exact error.
+        sys.path.insert(0, str(ROOT))
+        from recall import db, downloader, pipeline
+        from recall.fixture_provider import FixtureProvider
+        con = db.connect()
+        ids = [r[0] for r in con.execute("SELECT id FROM videos WHERE status='deep' ORDER BY saved_at DESC LIMIT 2")]
+
+        class Blocked(FixtureProvider):
+            def fetch_video(self, vid, url, tmp):
+                raise downloader.DownloadError("blocked", "Unexpected response from webpage request")
+        post = lambda path, body: urllib.request.urlopen(urllib.request.Request(
+            base + path, data=json.dumps(body).encode(), headers={"Content-Type": "application/json"}))
+        post("/api/worker", {"paused": True}); time.sleep(3)
+        for vid in ids:
+            db.set_status(con, vid, "meta")
+        pipeline.wave2_batch(con, Blocked(ROOT / "fixtures" / "out"), db.get_settings(con), ids=ids)
+        br = downloader.Breaker(con)
+        for i in range(downloader.BREAKER_THRESHOLD):
+            br.failure("blocked", "Unexpected response from webpage request", ids[i % len(ids)])
+        post("/api/worker", {"paused": False})
+        cap = con.execute("SELECT caption FROM videos WHERE id=?", (ids[0],)).fetchone()[0]
+        for name, route in [("08_home_breaker_banner", "#/"), ("09_import_breaker_banner", "#/import")]:
+            pg.goto(base + "/" + route)
+            pg.wait_for_selector("#breaker"); pg.wait_for_timeout(1200)
+            pg.screenshot(path=str(OUT / f"{name}.png"))
+        pg.goto(base + "/#/search?q=" + urllib.request.quote(" ".join(cap.split()[:3])))
+        pg.wait_for_selector(".video-doc"); pg.wait_for_timeout(1000)
+        pg.screenshot(path=str(OUT / "10_results_thumbnail_only.png"))
+        # the banner's Retry button really closes the breaker and re-queues
+        pg.goto(base + "/#/import"); pg.wait_for_selector("#breaker")
+        pg.click("[data-breaker=retry]"); pg.wait_for_timeout(2500)
+        assert not get(base, "/api/queue")["breaker"]["open"], "Retry did not close the breaker"
+        con.close()
         b.close()
         print("console/page errors:", errors or "none")
         print("\n".join(str(x) for x in sorted(OUT.glob("*.png"))))

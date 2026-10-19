@@ -54,4 +54,11 @@ DEFAULT_SETTINGS = {
     "batch_size": 4,           # videos per wave-2 batch (models run sequentially per batch)
     "oembed_rate": 1.0,        # seconds between oEmbed requests
     "worker_paused": False,
+    # --- wave-2 downloads (yt-dlp) ---
+    "video_downloads": True,   # off = deep-index from the oEmbed thumbnail only (CLIP + OCR), never download
+    "cookies_browser": "none",  # none | chrome | edge | firefox | safari | brave  -> yt-dlp --cookies-from-browser
+    "cookies_file": "",        # optional Netscape cookies.txt path (overrides cookies_browser)
+    "ytdlp_impersonate": "auto",  # auto (try plain desktop UA, then curl_cffi impersonation) | always | never
+    "ytdlp_user_agent": "",    # optional User-Agent override for TikTok requests
+    "download_retry_delay_s": 600,  # first automatic retry of a failed download after 10 min (x3 each time)
 }

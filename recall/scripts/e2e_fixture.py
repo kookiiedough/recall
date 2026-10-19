@@ -93,6 +93,38 @@ def main() -> int:
         empty = search.search("vintage mechanical watches from the 1940s in silver", con=con)
         report["no_results_query"] = {"total": empty["total"], "fuzzy": [(f["id"][-2:], f["score"], f["signal"]) for f in empty.get("fuzzy", [])][:3],
                                       "suggestions": empty.get("suggestions")}
+        # degraded path: pretend TikTok blocks the download for the OCR/visual targets, so only the oEmbed
+        # thumbnail (frame at 1 s in this fixture) can be indexed; check what thumbnail-only search still finds.
+        from recall import db as _db, downloader
+        deg_t = [t for t in targets if t["signal"] in ("ocr", "visual")]
+        deg_ids = sorted({t["expect"] for t in deg_t})
+
+        class Blocked(type(prov)):
+            def fetch_video(self, vid, url, tmp):
+                if vid in deg_ids:
+                    raise downloader.DownloadError("blocked", "Unexpected response from webpage request")
+                return super().fetch_video(vid, url, tmp)
+        bprov = Blocked(FIX)
+        for vid in deg_ids:
+            _db.set_status(con, vid, "meta")
+        while pipeline.wave2_batch(con, bprov, s, ids=deg_ids):
+            if not con.execute(f"SELECT count(*) FROM videos WHERE status='meta' AND id IN ({','.join('?'*len(deg_ids))})",
+                               deg_ids).fetchone()[0]:
+                break
+        drows = []
+        for t in deg_t:
+            res = search.search(t["query"], con=con, log=False)
+            rank = next((i + 1 for i, x in enumerate(res["results"]) if x["id"] == t["expect"]), None)
+            hit = next((x for x in res["results"] if x["id"] == t["expect"]), None)
+            drows.append({"signal": t["signal"], "query": t["query"], "rank": rank, "status": hit and hit["status"],
+                          "chips": [f"{w['label']}:{w['score']}" for w in (hit["why"] if hit else [])][:3]})
+        report["degraded_thumbnail_only"] = {
+            "videos": len(deg_ids),
+            "statuses": dict(con.execute(f"SELECT status, count(*) FROM videos WHERE id IN ({','.join('?'*len(deg_ids))}) GROUP BY status",
+                                         deg_ids).fetchall()),
+            "rank1": f"{sum(r['rank'] == 1 for r in drows)}/{len(drows)}",
+            "found_in_results": f"{sum(r['rank'] is not None for r in drows)}/{len(drows)}",
+            "queries": drows}
         report["peak_rss_mb"] = round(mon.peak / 2**20)
     report["ru_maxrss_mb"] = round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
     report["accuracy"] = {k: f"{a}/{b}" for k, (a, b) in per.items()}
@@ -105,7 +137,9 @@ def main() -> int:
     out.write_text(json.dumps(report, indent=2, default=str))
     for r in rows:
         print(("PASS" if r["ok"] else "FAIL"), f"{r['signal']:10s} rank={r['rank']} n={r['n']} t={r['best_t']} {r['ms']}ms  {r['query']!r}  {r['chips']}")
-    print(json.dumps({k: v for k, v in report.items() if k not in ("queries", "stats")}, indent=1, default=str))
+    for r in report["degraded_thumbnail_only"]["queries"]:
+        print("THUMB", f"{r['signal']:7s} rank={r['rank']} status={r['status']} {r['query']!r} {r['chips']}")
+    print(json.dumps({k: v for k, v in report.items() if k not in ("queries", "stats", "degraded_thumbnail_only")}, indent=1, default=str))
     print(json.dumps(report["stats"], indent=1))
     return 0 if sum(a for a, _ in per.values()) == sum(b for _, b in per.values()) else 1
 

@@ -19,7 +19,8 @@ def main() -> None:
         os.environ["RECALL_HOME"] = a.home
     from . import config
     config.models_dir()
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s",
+                        datefmt="%H:%M:%S")
     import uvicorn
     from .server import create_app
     app = create_app(start_worker=not a.no_worker)

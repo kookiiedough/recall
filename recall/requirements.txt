@@ -13,7 +13,9 @@ numpy>=1.26
 pillow>=10.0
 psutil>=5.9
 scikit-learn>=1.4
-yt-dlp>=2024.10.0
+# yt-dlp breaks whenever TikTok changes; run.sh / run.bat upgrade it on every launch.
+# [default] = brotli/certifi/websockets/yt-dlp-ejs; [curl-cffi] = browser TLS impersonation (yt-dlp picks a compatible curl_cffi).
+yt-dlp[default,curl-cffi]>=2026.8.19
 faster-whisper>=1.0.3
 rapidocr>=3.0
 onnxruntime>=1.17

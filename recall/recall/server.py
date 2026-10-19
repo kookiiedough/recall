@@ -10,7 +10,7 @@ from fastapi import Body, FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import __version__, clusters, config, db, export, ingest, models, search, stats
+from . import __version__, clusters, config, db, downloader, export, ingest, models, search, stats
 from .worker import Worker
 
 STATIC = Path(__file__).parent / "static"
@@ -29,6 +29,10 @@ def create_app(worker: Worker | None = None, start_worker: bool = True, warm: bo
     app.state.worker = worker or Worker()
 
     def _startup():
+        try:
+            downloader.Breaker(db.get()).reset_if_upgraded()
+        except Exception:
+            pass
         if start_worker:
             app.state.worker.start()
         if warm:
@@ -79,6 +83,10 @@ def create_app(worker: Worker | None = None, start_worker: bool = True, warm: bo
         s["version"] = __version__
         return s
 
+    @app.get("/api/downloader")
+    def api_downloader():
+        return {**downloader.environment(), "breaker": downloader.Breaker(db.get()).public()}
+
     @app.get("/api/queue")
     def api_queue(limit: int = 40):
         con = db.get()
@@ -87,13 +95,35 @@ def create_app(worker: Worker | None = None, start_worker: bool = True, warm: bo
         pending = con.execute("SELECT id, url, source, local_path, status, stage, progress, error, caption, creator, duration, attempts "
                               "FROM videos WHERE status IN ('new','meta') AND stage IS NULL ORDER BY saved_at DESC LIMIT ?", (limit,)).fetchall()
         recent = con.execute("SELECT id, url, source, local_path, status, stage, progress, error, caption, creator, duration, attempts "
-                             "FROM videos WHERE status IN ('deep','dead','failed') ORDER BY updated_at DESC LIMIT 15").fetchall()
+                             "FROM videos WHERE status IN ('deep','partial','dead','failed') AND stage IS NULL ORDER BY updated_at DESC LIMIT 15").fetchall()
         counts = dict(con.execute("SELECT status, count(*) FROM videos GROUP BY status").fetchall())
         imports = [dict(r) for r in con.execute("SELECT * FROM imports ORDER BY id DESC LIMIT 5")]
         s = db.get_settings(con)
         return {"active": [dict(r) for r in active], "pending": [dict(r) for r in pending], "recent": [dict(r) for r in recent],
                 "counts": counts, "imports": imports, "worker": app.state.worker.state, "paused": bool(s.get("worker_paused")),
-                "deep_index": bool(s.get("deep_index", True))}
+                "deep_index": bool(s.get("deep_index", True)), "video_downloads": bool(s.get("video_downloads", True)),
+                "breaker": downloader.Breaker(con).public()}
+
+    @app.post("/api/downloads/retry")
+    def api_downloads_retry():
+        """Banner 'Retry': close the circuit breaker and re-queue every failed download that might now work."""
+        con = db.get()
+        downloader.Breaker(con).reset()
+        rows = con.execute("SELECT id FROM videos WHERE status='partial' AND source!='local' AND "
+                           "coalesce(json_extract(signals, '$.download_error'), '') != 'unavailable'").fetchall()
+        for r in rows:
+            db.set_status(con, r["id"], "meta", attempts=0)
+        app.state.worker.kick()
+        return {"requeued": len(rows), "breaker": downloader.Breaker(con).public()}
+
+    @app.post("/api/downloads/thumbnail-only")
+    def api_downloads_thumbnail_only():
+        """Banner alternative: stop downloading; deep-index the rest from thumbnails (CLIP + OCR) only."""
+        con = db.get()
+        db.set_settings(con, {"video_downloads": False})
+        downloader.Breaker(con).reset()
+        app.state.worker.kick()
+        return {"ok": True}
 
     # ------------------------------------------------------------ import
     @app.post("/api/import/file")
@@ -171,7 +201,8 @@ def create_app(worker: Worker | None = None, start_worker: bool = True, warm: bo
         r = con.execute("SELECT status FROM videos WHERE id=?", (vid,)).fetchone()
         if not r:
             raise HTTPException(404)
-        db.set_status(con, vid, "new" if r["status"] in ("dead", "failed") else r["status"], attempts=0, error=None)
+        new = {"dead": "new", "failed": "new", "partial": "meta"}.get(r["status"], r["status"])
+        db.set_status(con, vid, new, attempts=0, error=None)
         app.state.worker.kick()
         return {"ok": True}
 
@@ -201,7 +232,20 @@ def create_app(worker: Worker | None = None, start_worker: bool = True, warm: bo
 
     @app.post("/api/settings")
     def api_settings_set(body: dict = Body(...)):
-        s = db.set_settings(db.get(), body)
+        if "cookies_browser" in body and body["cookies_browser"] not in ("none", *downloader.BROWSERS):
+            raise HTTPException(400, "cookies_browser must be none or one of " + ", ".join(downloader.BROWSERS))
+        if "ytdlp_impersonate" in body and body["ytdlp_impersonate"] not in ("auto", "always", "never"):
+            raise HTTPException(400, "ytdlp_impersonate must be auto, always or never")
+        con = db.get()
+        before = db.get_settings(con)
+        s = db.set_settings(con, body)
+        if any(k in body and body[k] != before.get(k) for k in
+               ("cookies_browser", "cookies_file", "ytdlp_impersonate", "ytdlp_user_agent", "video_downloads")):
+            downloader.Breaker(con).reset()   # new download settings deserve a fresh attempt
+        if body.get("video_downloads") and not before.get("video_downloads", True):
+            for r in con.execute("SELECT id FROM videos WHERE status='partial' AND "
+                                 "json_extract(signals, '$.download_error')='disabled'").fetchall():
+                db.set_status(con, r["id"], "meta", attempts=0)
         app.state.worker.kick()
         return s
 
@@ -221,6 +265,7 @@ def create_app(worker: Worker | None = None, start_worker: bool = True, warm: bo
         shutil.rmtree(config.media_dir(), ignore_errors=True)
         shutil.rmtree(config.tmp_dir(), ignore_errors=True)
         shutil.rmtree(config.home() / "uploads", ignore_errors=True)
+        downloader.Breaker(con).reset()
         db.bump_version()
         w.start()
         return {"ok": True}

@@ -28,7 +28,7 @@ CATEGORIES = {
 
 
 def _features(con) -> tuple[list[str], np.ndarray, dict[str, str]]:
-    vids = [r[0] for r in con.execute("SELECT id FROM videos WHERE status IN ('meta','deep')")]
+    vids = [r[0] for r in con.execute("SELECT id FROM videos WHERE status IN ('meta','partial','deep')")]
     if not vids:
         return [], np.zeros((0, 896)), {}
     text_sum: dict[str, np.ndarray] = {}

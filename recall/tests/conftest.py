@@ -26,4 +26,5 @@ def con(home):
 
 
 NO_MODELS = {"deep_index": True, "transcripts": False, "ocr": False, "visual": False, "text_embeddings": False,
-             "sound": True, "frame_interval": 2.0, "max_keyframes": 4, "batch_size": 4, "oembed_rate": 0}
+             "sound": True, "frame_interval": 2.0, "max_keyframes": 4, "batch_size": 4, "oembed_rate": 0,
+             "video_downloads": True, "download_retry_delay_s": 0}
